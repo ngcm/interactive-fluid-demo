@@ -28,7 +28,7 @@ conda install -c menpo opencv
 
 To get *OpenCV* working, including video support (*ffmpeg*) I had to compile from source.
 
-Installation steps derived from [pyimagesearch blog](http://www.pyimagesearch.com/2016/10/24/ubuntu-16-04-how-to-install-opencv/). I've avoiding using environments, which means less steps total, but a slightly more involved *cmake* step.
+Installation steps derived from [pyimagesearch blog](http://www.pyimagesearch.com/2016/10/24/ubuntu-16-04-how-to-install-opencv/). I've avoided using environments, which means less steps total, but a slightly more involved *cmake* step.
 
 * Grab all the dependencies (if a particular version doesn't exist, try removing the version number, e.g. `libpng12-dev` > `libpng-dev`);
   ```
