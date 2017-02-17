@@ -51,21 +51,21 @@ Installation steps derived from [pyimagesearch blog](http://www.pyimagesearch.co
   ```
 
 * Now you should be ready to build the make file, using *cmake*. Note all of the compilation flags, especially the paths to the python executables/libraries/includes, make sure they are correct for your system. You may also run into an issue with `stdlib.h`, in which case add the flag `-D ENABLE_PRECOMPILED_HEADERS=OFF`;
-```
-cd opencv-3.2.0/
-mkdir build
-cd build
-cmake -D CMAKE_BUILD_TYPE=RELEASE \
-    -D CMAKE_INSTALL_PREFIX=/usr/local \
-    -D INSTALL_PYTHON_EXAMPLES=ON \
-    -D INSTALL_C_EXAMPLES=OFF \
-    -D OPENCV_EXTRA_MODULES_PATH=~/opencv_contrib-3.2.0/modules \
-    -D PYTHON3_EXECUTABLE=/usr/bin/python3 \
-    -D PYTHON3_LIBRARIES=/usr/lib/x86_64-linux-gnu/libpython3.5m.so \
-    -D PYTHON3_NUMPY_INCLUDE_DIRS=/usr/local/lib/python3.5/dist-packages/numpy/core/include \
-    -D PYTHON3_PACKAGES_PATH=/usr/local/lib/ \
-    -D BUILD_EXAMPLES=ON ..
-```
+  ```
+  cd opencv-3.2.0/
+  mkdir build
+  cd build
+  cmake -D CMAKE_BUILD_TYPE=RELEASE \
+      -D CMAKE_INSTALL_PREFIX=/usr/local \
+      -D INSTALL_PYTHON_EXAMPLES=ON \
+      -D INSTALL_C_EXAMPLES=OFF \
+      -D OPENCV_EXTRA_MODULES_PATH=~/opencv_contrib-3.2.0/modules \
+      -D PYTHON3_EXECUTABLE=/usr/bin/python3 \
+      -D PYTHON3_LIBRARIES=/usr/lib/x86_64-linux-gnu/libpython3.5m.so \
+      -D PYTHON3_NUMPY_INCLUDE_DIRS=/usr/local/lib/python3.5/dist-packages/numpy/core/include \
+      -D PYTHON3_PACKAGES_PATH=/usr/local/lib/ \
+      -D BUILD_EXAMPLES=ON ..
+  ```
 
 * When this completes you'll see a summary of all the options. Scroll up and double check that the *Python* version you want to use has the correct `Interpreter`, `Libraries`, `numpy`, and `packages path`. If these are not correct you won't build the *Python* bindings.
 
@@ -81,6 +81,7 @@ cmake -D CMAKE_BUILD_TYPE=RELEASE \
   ```
   import cv2
   ```
+
 ## VirtualBox
 
 I currently develop inside a VM. If doing the same, make sure to install the [VirtualBox 5.1.14 Oracle VM VirtualBox Extension Pack](https://www.virtualbox.org/wiki/Downloads) to get access to the host webcam from the guest VM. Then you should be able to enable the webcam from the `Devices` menu.
