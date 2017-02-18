@@ -14,13 +14,16 @@ Planned improvements;
 
 *OpenCV* is an open source computer vision library. At present it's only used to get data from the webcam, superimpose some images, and render an output window. It is also a little tricky to install. An alternative may be warranted if this makes it difficult for people to collaborate. I'm sticking with it for now as I have not found a suitable alternative and the computer vision, image processing and GUI functions may prove useful to the project as it develops.
 
-### Installation via pre-built packages (Not working?)
+### Installation via pre-built packages
 
-I wasn't able to get a fully working python package. The *OpenCV* packages available on pip are apparently very out-of-date, so that may be the problem, but I think the problem is with *ffmpeg*. These packages looked promising, but no luck with them so far;
+This will work as long as you are using the correct version of linux, otherwise you won't have all the required libraries and some may have been deprecated (though that doesn't stop you manually installing them). In my case I got it to work on Ubuntu 16.04.
+
+As *OpenCV* is quite picky, I found it best to use a *Python* environment. So grab *Conda* and run the following;
 ```
-conda install -c menpo ffmpeg
-conda install -c menpo opencv
+conda create -n opencv -c menpo opencv3 ffmpeg
 ```
+
+Activate the environment (`source activate opencv`) and try importing (`import cv2`, n.b 2 not 3).
 
 ### Build from source
 
