@@ -2,7 +2,9 @@
 
 The aim of this project is to create an engaging, interactive demonstration of the kinds of simulations we develop as part of the [NGCM-CDT](http://ngcm.soton.ac.uk/). The basic concept is to combine real-time simulations with live video so that participants can interact with the simulation directly. It was inspired by the Lego(tm) Fluid Dynamics idea suggested at the 2017 NGCM outreach workshop. The ultimate goal is to create an easy to setup, maintain and develop demo that can be an ongoing part of the NGCM's contribution to the University of Southampton's public outreach (http://www.southampton.ac.uk/per/).
 
-As a proof-of-concept, I have combined a simple real-time 2D fluid dynamics simulation with live webcam footage, using *Python* and a computer vision library, *OpenCV*. This can be interacted with directly and simultaneously used to examine the aerodynamics of any object (like a car built from Lego(tm)) place in front of the camera.
+As a proof-of-concept, I have combined a simple real-time 2D fluid dynamics simulation with live webcam footage, using *Python* and a computer vision library, *OpenCV*. This can be interacted with directly and simultaneously used to examine the aerodynamics of any object (like a car built from Lego(tm)) placed in front of the camera.
+
+![FluidDemo0.2 with whiteboard objects](https://github.com/ngcm/interactive-fluid-demo/blob/master/FluidDemo0.2.png)
 
 Planned improvements;
 * The model is very rough, and does not handle boundaries very well.
@@ -29,7 +31,7 @@ Activate the environment (`source activate opencv`) and try importing (`import c
 
 To get *OpenCV* working, including video support (*ffmpeg*) I had to compile from source.
 
-Installation steps derived from [pyimagesearch blog](http://www.pyimagesearch.com/2016/10/24/ubuntu-16-04-how-to-install-opencv/). I've avoiding using environments, which means less steps total, but a slightly more involved *cmake* step.
+Installation steps derived from [pyimagesearch blog](http://www.pyimagesearch.com/2016/10/24/ubuntu-16-04-how-to-install-opencv/). I've avoided using environments, which means less steps total, but a slightly more involved *cmake* step.
 
 * Grab all the dependencies (if a particular version doesn't exist, try removing the version number, e.g. `libpng12-dev` > `libpng-dev`);
   ```
