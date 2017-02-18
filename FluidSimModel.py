@@ -7,22 +7,52 @@ inner = np.s_[1:-1,1:-1]
 def add_source(x, s, dt):
     x += dt * s
 
+'''
 def set_bnd(x, flag, box):
-    lfall = np.logical_and(np.logical_not(box[:-1,:]), box[1:,:])
-    x[1:,:][lfall] = -x[:-1,:][lfall] if flag == 1 else x[:-1,:][lfall] 
-    rfall = np.logical_and(box[:-1,:], np.logical_not(box[1:,:]))
-    x[:-1,:][rfall] = -x[1:,:][rfall] if flag == 1 else x[1:,:][rfall] 
 
     dfall = np.logical_and(box[:,:-1], np.logical_not(box[:,1:]))
     x[:,:-1][dfall] = -x[:,1:][dfall] if flag == 2 else x[:,1:][dfall]
     ufall = np.logical_and(np.logical_not(box[:,:-1]), box[:,1:])
     x[:,1:][ufall] = -x[:,:-1][ufall] if flag == 2 else x[:,:-1][ufall]
     
+    lfall = np.logical_and(np.logical_not(box[:-1,:]), box[1:,:])
+    x[1:,:][lfall] = -x[:-1,:][lfall] if flag == 1 else x[:-1,:][lfall] 
+    rfall = np.logical_and(box[:-1,:], np.logical_not(box[1:,:]))
+    x[:-1,:][rfall] = -x[1:,:][rfall] if flag == 1 else x[1:,:][rfall] 
+  
     center = np.logical_and(box[1:-1,1:-1], 
                 np.logical_and(box[:-2,1:-1], 
                     np.logical_and(box[2:,1:-1],
                         np.logical_and(box[1:-1,:-2], box[1:-1,2:]))))
     x[inner][center] = 0
+'''
+  
+def set_bnd(x, flag, box):
+    x[box] = 0
+
+    if(flag==2):
+        dfall = np.logical_and(box[:,:-1], np.logical_not(box[:,1:]))
+        x[:,:-1][dfall] += -x[:,1:][dfall]
+        
+        ufall = np.logical_and(np.logical_not(box[:,:-1]), box[:,1:])
+        x[:,1:][ufall] += -x[:,:-1][ufall]
+    elif(flag==1):
+        lfall = np.logical_and(np.logical_not(box[:-1,:]), box[1:,:])
+        x[1:,:][lfall] += -x[:-1,:][lfall]  
+        
+        rfall = np.logical_and(box[:-1,:], np.logical_not(box[1:,:]))
+        x[:-1,:][rfall] += -x[1:,:][rfall]
+    else:
+        dfall = np.logical_and(box[:,:-1], np.logical_not(box[:,1:]))
+        x[:,:-1][dfall] = x[:,1:][dfall]        
+        ufall = np.logical_and(np.logical_not(box[:,:-1]), box[:,1:])
+        x[:,1:][ufall] = x[:,:-1][ufall]
+        lfall = np.logical_and(np.logical_not(box[:-1,:]), box[1:,:])
+        x[1:,:][lfall] = x[:-1,:][lfall]        
+        rfall = np.logical_and(box[:-1,:], np.logical_not(box[1:,:]))
+        x[:-1,:][rfall] = x[1:,:][rfall]
+
+    
     
 def lin_solve(x, x0, a, c, flag, box):
     for _ in range(20):
