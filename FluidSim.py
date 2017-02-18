@@ -37,14 +37,15 @@ if(ret):
 
         # convert to 2 colours
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        gray = cv2.flip(gray, 1)
         gray = -gray
         gray[gray < 150] = 0
         gray[gray > 0] = 255
             
-        for i in range(100):
-            gray[240-i/2:240+i/2,200+i] = 255
+        #for i in range(100):
+        #    gray[240-i/2:240+i/2,200+i] = 255
                 
-        cv2.circle(gray, (400, 100), 20, (255), 50)
+        # cv2.circle(gray, (400, 100), 20, (255), 50)
          
 
         # copy the webcam data into the boundary
