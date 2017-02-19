@@ -4,7 +4,7 @@ The aim of this project is to create an engaging, interactive demonstration of t
 
 As a proof-of-concept, I have combined a simple real-time 2D fluid dynamics simulation with live webcam footage, using *Python* and a computer vision library, *OpenCV*. This can be interacted with directly and simultaneously used to examine the aerodynamics of any object (like a car built from Lego(tm)) placed in front of the camera.
 
-![FluidDemo0.2 with whiteboard objects](https://github.com/ngcm/interactive-fluid-demo/blob/master/FluidDemo0.2.png)
+![FluidDemo0.2 with whiteboard objects](https://github.com/ngcm/interactive-fluid-demo/blob/master/FluidDemo.png)
 
 Planned improvements;
 * The model is very rough, and does not handle boundaries very well.
