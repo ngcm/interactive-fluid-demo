@@ -38,7 +38,7 @@ class Sim:
             + t * x0[xi + 1, yi + 1])
         x[self._b] = x0[self._b]
             
-    def _divergence(self, div, x0, dt):
+    def _divergence(self, div, x0):
         div[-1,:] = 0
         div[:-1, :] = x0[0, 1:, :] * self._notb[1:, :] / (2 * self._dx[0])
         div[1:, :] -= x0[0, :-1, :] * self._notb[:-1, :] / (2 * self._dx[0])
@@ -51,7 +51,7 @@ class Sim:
         
         bound = 0.0 + self._b[0:-2,1:-1] + self._b[2:,1:-1] + self._b[1:-1,0:-2] + self._b[1:-1,2:]
         
-        for i in range(10):
+        for i in range(30):
             p[1:-1,1:-1] = 1 / 4 * (p[1:-1,1:-1] * bound
                 + p[0:-2,1:-1] * self._notb[0:-2,1:-1] 
                 + p[2:,1:-1] * self._notb[2:,1:-1] 
@@ -60,7 +60,7 @@ class Sim:
                 - self._dx[0] * self._dx[1] * div[1:-1,1:-1])
             p[self._b] = 0
             
-    def _sub_gradient(self, v, v0, p, dt):        
+    def _sub_gradient(self, v, v0, p):        
         v[0, 1:-1, :] = v0[0, 1:-1, :] - 1 / (2 * self._dx[0]) * (p[2:, :] - p[:-2, :])
         v[1, :, 1:-1] = v0[1, :, 1:-1] - 1 / (2 * self._dx[1]) * (p[:, 2:] - p[:, :-2])
         
@@ -81,9 +81,9 @@ class Sim:
         self._updateadvect(dt)
         self._advect(self._tmp[0], self._v[0])
         self._advect(self._tmp[1], self._v[1])
-        self._divergence(self._v[0], self._tmp, dt)
+        self._divergence(self._v[0], self._tmp)
         self._pressure_solve(self._v[1], self._v[0])
-        self._sub_gradient(self._v, self._tmp, self._v[1], dt)
+        self._sub_gradient(self._v, self._tmp, self._v[1])
         self._v[:, self._b] = 0
 
         for d in density_arrays:
