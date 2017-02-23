@@ -34,7 +34,7 @@ if(camera.active):
 
     # initialise the fluid sim arrays
     width, height = camera.shape
-    sim_shape = (int(width/2), int(height/2))
+    sim_shape = (int(width/3), int(height/3))
     diff = 0.001
     visc = 0.0#001
     # sim = StamFluidSim.StamFluidSim(sim_shape, diffusion, viscosity)

@@ -24,10 +24,10 @@ class Camera:
             # update frame if cam is active
             ret, frame = self._cap.read()
             if ret:
-                self._input_frame = cv2.resize(frame, self._size)
+                self._input_frame = cv2.resize(cv2.flip(frame, 1), self._size)
         elif self._no_cam_mode:
             # else scroll
-            None#self._input_frame = self._input_frame.take(range(-1, self._size[1] - 1), axis=0, mode='wrap')
+            self._input_frame = self._input_frame.take(range(-1, self._size[1] - 1), axis=0, mode='wrap')
                                
         # generate the mask, invert if necessary
         self._mask = cv2.cvtColor(self._input_frame, cv2.COLOR_RGB2GRAY)
