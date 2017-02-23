@@ -4,136 +4,136 @@ import time
 import numpy as np
 import cv2
 
+import Camera
 import StamFluidSim
+import AltSim
 import util
+import Options
 
-modes = ['smoke', 'velocity']
-mode = 0
-
-bgmodes = ['white', 'black']
-bgmode = 0
-
-speed = 300
-
+cv2.startWindowThread()
 cv2.namedWindow("window", flags=cv2.WND_PROP_FULLSCREEN)
-cap = cv2.VideoCapture(0)
 
-ret, input_frame = cap.read()
-input_frame = cv2.flip(input_frame, 1)
+camera = Camera.Camera(no_cam_mode=True)
 
 ltime = time.time()
-if(ret):
+if(camera.active):
+    
+    modeOption = Options.CycleOption('Mode', 'm', ['smoke', 'velocity'], 1)
+    bgOption = Options.CycleOption('BG', 'b', ['white', 'black'], 1)
+    speedOption = Options.RangeOption('Speed', ['-','='], [0.05, 3], 0.05, 0.4)
+    levelOption = Options.RangeOption('Mask Level', ['[',']'], [10, 250], 10, 180)
+    smokeAmount = Options.RangeOption('SmokeAmount', ['\'','#'], [1, 10], 1, 2)
+    flowMode = Options.CycleOption('FlowMode', 'v', ['Wind Tunnel', 'Washing Machine'], 0)
+    viscosity = Options.RangeOption('Viscosity', ['9','0'], [0, 1], 0.0001, 0)
+    diffusion = Options.RangeOption('Diffusion', ['o','p'], [0, 1], 0.0001, 0)
+    
+    options = [flowMode, modeOption, bgOption, speedOption, levelOption, smokeAmount, viscosity, diffusion]
+
     # sub-sample the webcam image to fit the fluid sim resolution
     step = 4
 
     # initialise the fluid sim arrays
-    height, width, nc = np.shape(input_frame)    
-    sim_shape = (int(width/step), int(height/step))
+    width, height = camera.shape
+    sim_shape = (int(width/2), int(height/2))
     diff = 0.001
-    visc = 0.0001
-    sim = StamFluidSim.StamFluidSim(sim_shape, diff, visc)
+    visc = 0.0#001
+    # sim = StamFluidSim.StamFluidSim(sim_shape, diffusion, viscosity)
+    sim = AltSim.Sim(sim_shape, diffusion, viscosity)
     
-    d = np.zeros((3, *sim_shape), dtype=np.uint8)
+    d = np.zeros((3, *sim_shape), dtype=np.float32)
     
-    dt = 0.0001
-    
-    level = 150
+    ltime = time.time()
 
     while(True):    
-        # Capture webcam frame
-        ret, input_frame = cap.read()
-        input_frame = cv2.flip(input_frame, 1)
-
-        # convert to 2 colours
-        mask = cv2.cvtColor(input_frame, cv2.COLOR_BGR2GRAY)
-        if bgmode == 0:
-            mask = -mask
-        mask[mask < level] = 0
-        mask[mask > 0] = 255
-            
-        #mask[:] = 0
-        '''
-        for i in range(100):
-            mask[150+i:152+i,150+i:153+i] = 255
-            mask[210+i:212+i,150+i:153+i] = 255
-                
-        cv2.circle(mask, (400, 100), 20, (255), 50)
-        cv2.rectangle(mask,(370, 310), (430, 370), (255), -50)
-        '''
-        # copy the webcam data into the boundary
-        box = np.array(mask[::step,::step].T, dtype=bool)
-
-        # add the bounding box
-        box[:, :2] = True
-        box[:, -2:] = True
-
-        sim.set_boundary(box)
-        masked_input_frame = np.zeros_like(input_frame)
-        if bgmode == 0:
-            masked_input_frame[:,:] = 255
-        masked_input_frame = cv2.add(input_frame, 0, dst=masked_input_frame, mask=mask)
-
-        smoke_amount = 1
-        for i in range(10, height, 10):
-            x, y = 3, i
-            d[0, x, y-smoke_amount:y+smoke_amount] = (np.random.rand() * 64 + 64) * (2 if i % 3 == 0 else 1)
-            d[1, x, y-smoke_amount:y+smoke_amount] = (np.random.rand() * 64 + 64) * (2 if i % 3 == 1 else 1)
-            d[2, x, y-smoke_amount:y+smoke_amount] = (np.random.rand() * 64 + 64) * (2 if i % 3 == 2 else 1)
-             
-        sim.set_velocity(np.s_[0, -20:-10,:], speed)
-        sim.set_velocity(np.s_[0,10:20,:], speed)                
-        sim.step(dt, d)
-        d = np.clip(d, 0, 255)
-
-        # render
-        if mode == 0:
-            sim_render = np.array(cv2.resize(d.T, (width, height)), dtype=np.uint8)            
-        elif mode == 1:
-            rgb = util.velocity_field_to_RGB(sim.get_velocity())
-            sim_render = np.array(cv2.resize(rgb.T * 255, (width, height)), dtype=np.uint8)    
-            
+        mask = np.zeros_like(camera.mask) #camera.get_mask(sim_shape, True)
+        if flowMode.current == 1:
+            thickness = int(np.sqrt((width//2)**2 + (height//2)**2)) - height//2
+            cv2.circle(mask, (width//2, height//2), thickness//2 + height//2, (255), thickness)
+        camera.update(mask, bgOption.current, levelOption.current)
+        
         curtime = time.time()
-        fps = 1 / (curtime - ltime)
+        dt = curtime - ltime
+        fps = 1 / (curtime - ltime)    
         ltime = curtime
             
-        if bgmode == 0:
-            masked_input_frame = cv2.subtract(masked_input_frame, sim_render)
-        else:
-            cv2.addWeighted(sim_render, 1, masked_input_frame, 1, 0, masked_input_frame)
+        # copy the webcam data into the boundary
         
-        text_color = (0, 0, 0) if bgmode == 0 else (255, 255, 255)
-        
-        cv2.putText(masked_input_frame, 'mode={}'.format(modes[mode]), (30,30), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color)
-        cv2.putText(masked_input_frame, 'bgmode={}'.format(bgmodes[bgmode]), (30,50), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color)
-        cv2.putText(masked_input_frame, 'speed={}'.format(speed), (30,70), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color)
-        cv2.putText(masked_input_frame, 'fps={:.2f}'.format(fps), (30,90), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color)
-        cv2.putText(masked_input_frame, 'q=quit, r=reset, m=mode, b=bg, []=level, -+=speed', (30,460), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color)
-        cv2.imshow('window', masked_input_frame)
+        box = np.array(cv2.resize(camera.mask, sim_shape).T, dtype=bool)
 
-        # quit, q, reset , r
-        key = cv2.waitKey(1) & 0xFF
+        # add the bounding box
+        box[:, :1] = True
+        box[:, -1:] = True
+        box[:1, :] = True
+        box[-1:, :] = True
+
+        flow = int(speedOption.current * dt / sim._dx[0])
+        if flowMode.current == 0:            
+            r = range(10, sim_shape[1], 10)
+            x = np.s_[1:2 + flow]
+        elif flowMode.current == 1:            
+            r = range(10, sim_shape[1] // 2, 10)
+            x = sim_shape[0] //2
+            x = np.s_[x - flow // 2:x + 1 + flow // 2]
+        for i in r:
+            s = np.s_[i:i + smokeAmount.current]
+            amount = (np.random.rand() + 1) * smokeAmount.current * dt
+            
+            d[0, x, s] = np.min([d[0, x, s] + amount, np.ones_like(d[0, x, s], dtype=np.float32)], axis=0) * (2 if i % 3 == 0 else 1)
+            d[1, x, s] = np.min([d[1, x, s] + amount, np.ones_like(d[1, x, s], dtype=np.float32)], axis=0) * (2 if i % 3 == 1 else 1)
+            d[2, x, s] = np.min([d[2, x, s] + amount, np.ones_like(d[2, x, s], dtype=np.float32)], axis=0) * (2 if i % 3 == 2 else 1)
+
+        sim.set_boundary(box)    
+        if flowMode.current == 0:  
+            sim.set_velocity(np.s_[0, box], 0)
+            sim.set_velocity(np.s_[1, box], 0)
+            sim.set_velocity(np.s_[0, -10:,:], speedOption.current)
+            sim.set_velocity(np.s_[0,:10,:], speedOption.current)    
+        elif flowMode.current == 1:
+            xs, ys = np.meshgrid(np.arange(sim_shape[1]), np.arange(sim_shape[0]))
+            r = np.sqrt((xs - sim_shape[1]//2)**2 + (ys - sim_shape[0]//2)**2)
+            T = np.logical_and(r > sim_shape[1] // 2 * 0.3, np.abs(ys - sim_shape[0]//2) < 10)
+            a = np.arctan2(xs[T] - sim_shape[1]//2, ys[T] - sim_shape[0]//2) + np.pi/2
+            sim.set_velocity(np.s_[0, T], np.cos(a) * r[T] / 100 * speedOption.current)
+            sim.set_velocity(np.s_[1, T], np.sin(a) * r[T] / 100 * speedOption.current)                     
+        sim.step(dt, d)
+
+        # render
+        if modeOption.current == 0:
+            sim_render = np.array(cv2.resize(np.clip(d.T * 255, 0, 255), (width, height)), dtype=np.uint8)            
+        elif modeOption.current == 1:
+            rgb = util.velocity_field_to_RGB(sim.get_velocity(), 0.25) # should be 0.5 (i.e. square root), but this shows the lower velocities better
+            sim_render = np.array(cv2.resize(rgb.T * 255, (width, height)), dtype=np.uint8)    
+
+        
+        key = cv2.waitKey(int(max(1, 33 - dt * 1000))) & 0xFF
+                         
+        for option in options:
+            option.poll_for_key(key)
+                         
         if key == ord('q'):
+            while cv2.waitKey(100) > 0:
+                None
             break
         elif key == ord('r'):
             sim.reset()
             d[:] = 0
-        elif key == ord('m'):
-            mode = (mode + 1) % len(modes)
-        elif key == ord('['):
-            level = max(level - 10, 10)
-        elif key == ord(']'):
-            level = min(level + 10, 250)
-        elif key == ord('-'):
-            speed = max(speed - 20, 00)
-        elif key == ord('='):
-            speed = min(speed + 20, 1000)
-        elif key == ord('b'):
-            bgmode = (bgmode + 1) % len(bgmodes)
+             
+        if bgOption.current == 0:
+            output = cv2.subtract(camera.masked_frame, sim_render)
+        else:
+            output = cv2.add(camera.masked_frame, sim_render)
+        
+        text_color = (0, 0, 0) if bgOption.current == 0 else (255, 255, 255)
+        
+        pos = np.array((30,30))
+        for option in options:
+            cv2.putText(output, str(option), tuple(pos), cv2.FONT_HERSHEY_SIMPLEX, 0.25, text_color)
+            pos = pos + [0,20]
+            
+        cv2.putText(output, '{:.2f}fps {:.2f}ms'.format(fps, 1000/fps), (510,30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color)
+            
+        cv2.putText(output, 'q=quit, r=reset', (30,460), cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color)
+        cv2.imshow('window', output)
             
 else:
     print("ERROR: Couldn't capture frame. Is Webcam available/enabled?")
@@ -141,4 +141,6 @@ else:
 # release the capture decive
 # cap.release()
 cv2.destroyAllWindows()
-
+cv2.waitKey(1)
+cv2.waitKey(1)
+cv2.waitKey(1)

@@ -8,16 +8,21 @@ class StamFluidSim():
     
     def __init__(self, shape, diffusion, viscosity):
         
-        self._v = np.zeros((2, *shape))
+        self._v = np.zeros((2, *shape), dtype=np.float32)
         self._b = np.zeros(shape, dtype=bool)        
-        self._tmp = np.zeros((2, *shape))   
+        self._tmp = np.zeros((2, *shape), dtype=np.float32)   
         
         print('v=', np.shape(self._v))
         print('b=', np.shape(self._b))
         print('tmp=', np.shape(self._tmp))
         
         self._diff = diffusion
-        self._visc = viscosity        
+        self._visc = viscosity      
+        
+        xs = np.arange(0.0, shape[0] + 0.0, 1)
+        ys = np.arange(0.0, shape[1] + 0.0, 1)
+        x, y = np.meshgrid(xs, ys)
+        self._indexArray = np.array([x.T, y.T], dtype=np.float32)
         
     def _set_bnd(self, x, f):        
         x[self._b] = 0
@@ -60,19 +65,15 @@ class StamFluidSim():
         
         dt0 = dt * np.sqrt(np.prod(shape))
         
-        xs = np.arange(1, shape[0] - 1)
-        ys = np.arange(1, shape[1] - 1)
-        x, y = np.meshgrid(xs, ys)
-        
-        x = np.clip(x.T - dt0 * u[StamFluidSim._inner], 0.5, shape[0] - 1.5)
-        y = np.clip(y.T - dt0 * v[StamFluidSim._inner], 0.5, shape[1] - 1.5)
+        x = np.clip(self._indexArray[0] - dt0 * u, 0, shape[0] - 1.01)
+        y = np.clip(self._indexArray[1] - dt0 * v, 0, shape[1] - 1.01)
         xi = np.array(x, dtype=int)
         yi = np.array(y, dtype=int)
         
         s = x - xi
         t = y - yi
         
-        d[StamFluidSim._inner] = (1 - s) * ((1 - t) * d0[xi, yi] + t * d0[xi, yi + 1]) \
+        d[:] = (1 - s) * ((1 - t) * d0[xi, yi] + t * d0[xi, yi + 1]) \
             + s * ((1 - t) * d0[xi + 1, yi] + t * d0[xi + 1, yi + 1])
             
         self._set_bnd(d, f)
@@ -98,16 +99,16 @@ class StamFluidSim():
                 
     def _dens_step(self, dt, x):
         #add_source(x, x0, dt)
-        self._diffuse(self._tmp[0], x, self._diff, dt, 0)
+        self._diffuse(self._tmp[0], x, self._diff.current, dt, 0)
         self._advect(x, self._tmp[0], self._v[0], self._v[1], dt, 0)
         
     def _vel_step(self, dt):
         # add_source(u, u0, dt)
         # add_source(v, v0, dt)        
         # print('prediffuse', self._tmp[0,10,10])
-        self._diffuse(self._tmp[0], self._v[0], self._visc, dt, 1)
+        self._diffuse(self._tmp[0], self._v[0], self._visc.current, dt, 1)
         # print('postdiffuse', self._tmp[0, 10, 10])
-        self._diffuse(self._tmp[1], self._v[1], self._visc, dt, 2)
+        self._diffuse(self._tmp[1], self._v[1], self._visc.current, dt, 2)
         self._project(self._tmp[0], self._tmp[1], self._v[0], self._v[1])
         # print('postproject', self._tmp[0, 10, 10])
         self._advect(self._v[0], self._tmp[0], self._tmp[0], self._tmp[1], dt, 1)
