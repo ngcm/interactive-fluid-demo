@@ -8,7 +8,8 @@ class Sim(SimBase):
     def __init__(self, shape, diffusion, viscosity):    
         super().__init__(shape)
         
-        self._tmp = np.zeros((4, *shape))   
+        self._tmp = np.zeros_like(self._v)   
+        self._tmp2 = np.zeros_like(self._v)  
         
         xs = np.arange(0.0, shape[0], 1)
         ys = np.arange(0.0, shape[1], 1)
@@ -111,28 +112,16 @@ class Sim(SimBase):
     def step(self, dt, density_arrays):        
         indexes = np.zeros_like(self._v, dtype=int)
         indexes2 = np.zeros_like(self._v, dtype=int)
-        self._advect_velocity(self._tmp[:2], self._v, indexes, dt)
-        self._advect_forward_velocity(self._tmp[2:4], self._tmp[:2], indexes2, dt)
-        self._tmp[:2] = self._tmp[:2] + 0.5 * (self._v - self._tmp[2:4])
+                
+        self._advect_velocity(self._tmp, self._v, indexes, dt)
+        self._advect_velocity(self._tmp2, self._tmp, indexes2, -dt)
+        self._tmp = 1.5 * self._v - 0.5 * self._tmp2
+        self._advect_velocity(self._tmp2, self._tmp, indexes, dt)
         
-        xi = indexes[0]
-        yi = indexes[1] 
-        
-        ui = np.array([self._v[0, xi, yi], self._v[0, xi+1, yi], self._v[0, xi, yi+1], self._v[0, xi+1, yi+1]])
-        vi = np.array([self._v[1, xi, yi], self._v[1, xi+1, yi], self._v[1, xi, yi+1], self._v[1, xi+1, yi+1]])
-
-        umin = np.min(ui, axis=0)        
-        umax = np.max(ui, axis=0)
-        vmin = np.min(vi, axis=0)
-        vmax = np.max(vi, axis=0)
-        
-        self._tmp[0] = np.clip(self._tmp[0], umin, umax)
-        self._tmp[1] = np.clip(self._tmp[1], vmin, vmax)
-        
-        self._divergence(self._v[0], self._tmp[:2])
-        self._pressure_solve(self._v[1], self._v[0])
-        self._sub_gradient(self._v, self._tmp, self._v[1])
-        self._v[:, self._b] = 0
+        self._divergence(self._tmp[0], self._tmp2)
+        self._pressure_solve(self._tmp[1], self._tmp[0])
+        self._sub_gradient(self._tmp, self._tmp2, self._tmp[1])
+        self._v[:, self._notb] = self._tmp[:, self._notb]
 
         self._updateadvect(dt)
         for d in density_arrays:

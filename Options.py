@@ -1,3 +1,5 @@
+import time
+
 class Cycle:    
     def __init__(self, name, key, options, current=0):
         self._name = name
@@ -8,6 +10,7 @@ class Cycle:
     def poll_for_key(self, key):
         if key == ord(self._key):
             self._current = (self._current + 1) % len(self._options)
+            time.sleep(0.5)
             return True
         else:
             return False

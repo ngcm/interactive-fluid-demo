@@ -21,7 +21,7 @@ if(camera.active):
     
     modeOption = Options.Cycle('Mode', 'm', ['smoke', 'velocity'], 1)
     bgOption = Options.Cycle('BG', 'b', ['white', 'black'], 1)
-    speedOption = Options.Range('Speed', ['-','='], [0.05, 3], 0.05, 0.4)
+    speedOption = Options.Range('Speed', ['-','='], [0.02, 1], 0.02, 0.2)
     levelOption = Options.Range('Mask Level', ['[',']'], [10, 250], 10, 180)
     smokeAmount = Options.Range('SmokeAmount', ['\'','#'], [1, 10], 1, 2)
     flowMode = Options.Cycle('FlowMode', 'v', ['Wind Tunnel', 'Washing Machine'], 0)
@@ -39,7 +39,7 @@ if(camera.active):
     diff = 0.001
     visc = 0.0#001
     # sim = StamFluidSim.StamFluidSim(sim_shape, diffusion, viscosity)
-    sim = AltSim.Sim(sim_shape, diffusion, viscosity)
+    sim = MacSim.Sim(sim_shape, diffusion, viscosity)
     
     d = DensityField(sim_shape)
     
@@ -62,25 +62,25 @@ if(camera.active):
         box[:, -1:] = True
         box[:1, :] = True
         box[-1:, :] = True
-        
-        #print('l=', fps.last_dt * speedOption.current / sim._dx[0])
-        
+                
         flowwidth = 1 + int(fps.last_dt * speedOption.current / sim._dx[0])
 
-        sim.set_boundary(box)    
         if flowMode.current == 0:  
             sim.set_velocity(np.s_[0, :, :1], speedOption.current)
-            sim.set_velocity(np.s_[0, :, -1:], speedOption.current)
-            #sim.set_velocity(np.s_[1, box], 0)
-            sim.set_velocity(np.s_[0, -flowwidth:,:], speedOption.current)
-            sim.set_velocity(np.s_[0,:flowwidth,:], speedOption.current)    
+            sim.set_velocity(np.s_[0, :, -1:], speedOption.current)            
+            #box[:flowwidth, :] = True
+            #box[-flowwidth:, :] = True
+            sim.set_velocity(np.s_[0, :flowwidth, :], speedOption.current)
+            sim.set_velocity(np.s_[0, -flowwidth:, :], speedOption.current)
         elif flowMode.current == 1:
+            sim.set_velocity(np.s_[:, box], 0)  
             xs, ys = np.meshgrid(np.arange(sim_shape[1]), np.arange(sim_shape[0]))
             r = np.sqrt((xs - sim_shape[1]//2)**2 + (ys - sim_shape[0]//2)**2)
-            T = np.logical_or(r < sim_shape[1] // 2 * 0.3, r > sim_shape[1] // 2 * 0.7) #np.logical_and(r > sim_shape[1] // 2 * 0.3, np.abs(ys - sim_shape[0]//2) < 10)
+            T = np.logical_or(r < sim_shape[1] // 2 * 0.3, np.logical_and(r > sim_shape[1] // 2 * 0.8, r <= sim_shape[1] // 2)) #np.logical_and(r > sim_shape[1] // 2 * 0.3, np.abs(ys - sim_shape[0]//2) < 10)
             a = np.arctan2(xs[T] - sim_shape[1]//2, ys[T] - sim_shape[0]//2) + np.pi/2
             sim.set_velocity(np.s_[0, T], np.cos(a) * r[T] / 100 * speedOption.current)
-            sim.set_velocity(np.s_[1, T], np.sin(a) * r[T] / 100 * speedOption.current)                     
+            sim.set_velocity(np.s_[1, T], np.sin(a) * r[T] / 100 * speedOption.current)  
+        sim.set_boundary(box)                       
         sim.step(fps.last_dt, d.field)
         
         d.update(flowMode.current, flowwidth, smokeAmount.current)
@@ -90,7 +90,7 @@ if(camera.active):
             rgb = np.clip(d.field.T * 255, 0, 255)
         elif modeOption.current == 1:
             rgb = sim.get_velocity_field_as_RGB(0.25).T * 255 # should be 0.5 (i.e. square root), but this shows the lower velocities better
-        sim_render = np.array(cv2.resize(rgb, (width, height)), dtype=np.uint8)    
+        sim_render = np.array(cv2.resize(rgb, (width, height), interpolation=cv2.INTER_NEAREST ), dtype=np.uint8)    
 
         key = cv2.waitKey(max(1, int(fps.dt_remaining * 500))) & 0xFF
                          

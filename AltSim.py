@@ -8,6 +8,7 @@ class Sim(SimBase):
     def __init__(self, shape, diffusion, viscosity):    
         super().__init__(shape)
         
+        self._div = np.zeros(shape)
         self._p = np.zeros(shape)
         self._tmp = np.zeros((4, *shape))   
         

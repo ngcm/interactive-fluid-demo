@@ -10,7 +10,7 @@ class Camera:
         
         self._input_frame = np.zeros((*self._size[::-1], 3), dtype=np.uint8)        
         if not self._cap.isOpened():           
-            random = np.array(np.random.rand(24, 32, 3) * 255, dtype=np.uint8)
+            random = np.array(np.random.rand(24, 16, 3) * 255, dtype=np.uint8)
             self._input_frame = cv2.resize(random, self._size)
             
         self._mask = np.zeros(self._size[::-1], dtype=np.uint8)
