@@ -19,11 +19,11 @@ camera = Camera(no_cam_mode=True)
 
 if(camera.active):
     
-    modeOption = Options.Cycle('Mode', 'm', ['smoke', 'velocity'], 1)
+    modeOption = Options.Cycle('Mode', 'm', ['Smoke', 'Velocity'], 1, auto_cycle=True, cycle_time=[20, 10])
     bgOption = Options.Cycle('BG', 'b', ['white', 'black'], 1)
     speedOption = Options.Range('Speed', ['-','='], [0.02, 1], 0.02, 0.2)
     levelOption = Options.Range('Mask Level', ['[',']'], [10, 250], 10, 180)
-    smokeAmount = Options.Range('SmokeAmount', ['\'','#'], [1, 10], 1, 2)
+    smokeAmount = Options.Range('SmokeAmount', ['\'','#'], [1, 10], 1, 3)
     flowMode = Options.Cycle('FlowMode', 'v', ['Wind Tunnel', 'Washing Machine'], 0)
     viscosity = Options.Range('Viscosity', ['9','0'], [0, 1], 0.0001, 0)
     diffusion = Options.Range('Diffusion', ['o','p'], [0, 1], 0.0001, 0)
@@ -80,23 +80,27 @@ if(camera.active):
             a = np.arctan2(xs[T] - sim_shape[1]//2, ys[T] - sim_shape[0]//2) + np.pi/2
             sim.set_velocity(np.s_[0, T], np.cos(a) * r[T] / 100 * speedOption.current)
             sim.set_velocity(np.s_[1, T], np.sin(a) * r[T] / 100 * speedOption.current)  
-        sim.set_boundary(box)                       
-        sim.step(fps.last_dt, d.field)
+        sim.set_boundary(box)              
+
+        if modeOption.current == 0:          
+            sim.step(fps.last_dt, d.field)
+        elif modeOption.current == 1:
+            sim.step(fps.last_dt, [])
         
         d.update(flowMode.current, flowwidth, smokeAmount.current)
 
         # render
         if modeOption.current == 0:
-            rgb = np.clip(d.field.T * 255, 0, 255)
+            rgb = np.clip(np.sqrt(d.field.T) * 255, 0, 255)
         elif modeOption.current == 1:
             rgb = sim.get_velocity_field_as_RGB(0.25).T * 255 # should be 0.5 (i.e. square root), but this shows the lower velocities better
-        sim_render = np.array(cv2.resize(rgb, (width, height), interpolation=cv2.INTER_NEAREST ), dtype=np.uint8)    
+        sim_render = np.array(cv2.resize(rgb, (width, height)), dtype=np.uint8)    
 
         key = cv2.waitKey(max(1, int(fps.dt_remaining * 500))) & 0xFF
                          
         
         for option in options:
-            option.poll_for_key(key)
+            option.update(key, fps.last_dt)
                          
         if key == ord('q'):
             while cv2.waitKey(100) > 0:
@@ -120,6 +124,8 @@ if(camera.active):
             
         cv2.putText(output, str(fps), (510,30), cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color)            
         cv2.putText(output, 'q=quit, r=reset', (30,460), cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color)
+        textSize, _ = cv2.getTextSize(modeOption.current_name, cv2.FONT_HERSHEY_SIMPLEX, 1, 3)
+        cv2.putText(output, modeOption.current_name, ((width - textSize[0])//2, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, text_color, 2)
         cv2.imshow('window', output)
             
 else:
