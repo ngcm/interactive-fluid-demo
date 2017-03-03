@@ -27,7 +27,7 @@ I currently develop inside a VM. If doing the same, make sure to install the [Vi
 
 As *OpenCV* is quite picky, I found it best to use a *Python* environment (i.e. *Conda*).
 
-If you are on a Mac, then the conda-forge packages work fine (thanks @ryanpepper). Install *OpenCV* to an environment using the following;
+If you are on a Mac, then the conda-forge packages work fine (thanks [ryanpepper](https://github.com/ryanpepper)). Install *OpenCV* to an environment using the following;
 ```
 conda create -n opencv -c conda-forge opencv numba
 ```
