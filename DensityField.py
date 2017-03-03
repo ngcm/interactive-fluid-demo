@@ -12,19 +12,16 @@ class DensityField:
         self._num_colours = len(self._colours)
         
     @jit
-    def update(self, flow_amount, perp_amount):
-        step = self._shape[1] // 10
+    def update(self, flow_amount, perp_number, perp_amount):
+        step = self._shape[1] // (perp_number + 1)
         ys = range(step, self._shape[1], step)
         
         rx = np.s_[:flow_amount]
         
-        dy = perp_amount // 2
+        dy = step * perp_amount // 20
         for i, y in enumerate(ys):
-            ry = np.s_[y - dy : y + dy + 1]            
-            colour = self._colours[i % self._num_colours]
-            self._d[0, rx, ry] = colour[0]
-            self._d[1, rx, ry] = colour[1]
-            self._d[2, rx, ry] = colour[2]
+            ry = np.s_[y - dy : y + dy + 1]
+            self._d[i % self._num_colours, rx, ry] = 1
             
     @jit       
     def reset(self):
@@ -33,3 +30,12 @@ class DensityField:
     @property
     def field(self):
         return self._d
+    
+    @property
+    def colour_field(self):
+        return np.dot(self._colours, self._d.reshape(self._num_colours, 
+            -1)).reshape(np.shape(self._d))
+    
+    @property
+    def alpha(self):
+        return np.clip(np.sqrt(np.sum(self._d, axis=0)), 0, 1)

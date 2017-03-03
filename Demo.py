@@ -18,10 +18,11 @@ if(camera.active):
     
     bgOption = Options.Cycle('BG', 'b', ['white', 'black'], 0)
     speedOption = Options.Range('Inflow Speed', ['-','='], [0.02, 1], 0.02, 0.2)
-    levelOption = Options.Range('Mask Threshold', ['[',']'], [10, 250], 10, 60)
-    smokeAmount = Options.Range('SmokeAmount', ['\'','#'], [1, 10], 1, 3)
+    levelOption = Options.Range('Mask Threshold', ['[',']'], [0, 255], 8, 60)
+    smokeStreams = Options.Range('Smoke Streams', [',','.'], [1, 50], 1, 10)
+    smokeAmount = Options.Range('Smoke Amount', ['\'','#'], [1, 10], 1, 3)
     debugMode = Options.Cycle('Mode', 'd', ['Normal', 'Debug'], 0)    
-    options = [bgOption, speedOption, levelOption, smokeAmount, debugMode]
+    options = [bgOption, speedOption, levelOption, smokeStreams, smokeAmount, debugMode]
 
     # initialise the fluid sim arrays
     width, height = camera.shape
@@ -33,9 +34,14 @@ if(camera.active):
     d = DensityField(sim_shape)
     
     fps = FPS_counter(limit=15)
+    
+    display_counter = 0 # display values for a short time if they change
 
     while(True):    
-        fps.update()        
+        fps.update()     
+        
+        if display_counter > 0:
+            display_counter -= fps.last_dt
         
         # update input image
         camera.update(bgOption.current, levelOption.current)
@@ -59,11 +65,11 @@ if(camera.active):
              
         # update and render the sim
         if debugMode.current == 0:
-            d.update(flowwidth, smokeAmount.current)
+            d.update(flowwidth, smokeStreams.current, smokeAmount.current)
             sim.step(fps.last_dt, d.field)
-            rgb = np.clip(np.sqrt(d.field.T) * 255, 0, 255)
+            rgb = np.clip(np.sqrt(d.colour_field.T) * 255, 0, 255)
             sim_render = np.array(cv2.resize(rgb, (width, height)), dtype=np.uint8)
-            alpha = cv2.cvtColor(sim_render, cv2.COLOR_RGB2GRAY) / (255 * 255)
+            alpha = cv2.resize(d.alpha.T, (width, height)) / 255 # cv2.cvtColor(sim_render, cv2.COLOR_RGB2GRAY) / (255 * 255)
             output = sim_render * alpha[:,:,np.newaxis] + camera.input_frame * (1/255 - alpha[:,:,np.newaxis])
         else:
             sim.step(fps.last_dt, [])
@@ -73,7 +79,7 @@ if(camera.active):
  
         # add the GUI       
         text_color = (0, 0, 255) if bgOption.current == 0 else (255, 255, 0)
-        if debugMode.current == 0:   
+        if debugMode.current == 0 and display_counter <= 0:   
             cv2.putText(output, 'd=Debug Mode', (30,460), cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color)
         else:
             pos = np.array((30,30))
@@ -91,7 +97,8 @@ if(camera.active):
         
         # update the options (poll for input, cycle)
         for option in options:
-            option.update(key, fps.last_dt)
+            if option.update(key, fps.last_dt):
+                display_counter = 1
                          
         # poll for quit, reset
         if key == ord('q'):
@@ -105,9 +112,9 @@ if(camera.active):
 else:
     print("ERROR: Couldn't capture frame. Is Webcam available/enabled?")
         
-# release the capture decive
-# cap.release()
+# close the window
 cv2.destroyAllWindows()
+# weirdly, this helps
 cv2.waitKey(1)
 cv2.waitKey(1)
 cv2.waitKey(1)
