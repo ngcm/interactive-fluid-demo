@@ -1,6 +1,6 @@
 # interactive-fluid-demo
 
-In the NGCM-CDT, we spend a lot of time programming complex simulations designed to be run on powerful computers. But you don't need a fast computer or a large, complicated program to model real physics. For example, this fluid physics simulation is only about 150 lines of Python code and can be run in real time on a modest single core computer.
+In the [NGCM-CDT](http://ngcm.soton.ac.uk/), we spend a lot of time programming complex simulations designed to be run on powerful computers. But you don't need a fast computer or a large, complicated program to model real physics. For example, this fluid physics simulation is only about 150 lines of Python code and can be run in real time on a modest single core computer.
 
 ## Project Aim
 
@@ -23,14 +23,21 @@ I currently develop inside a VM. If doing the same, make sure to install the [Vi
 
 *OpenCV* is an open source computer vision library. At present it's only used to get data from the webcam, superimpose some images, and render an output window. It is also a little tricky to install. An alternative may be warranted if this makes it difficult for people to collaborate. I'm sticking with it for now as I have not found a suitable alternative and the computer vision, image processing and GUI functions may prove useful to the project as it develops.
 
-### Installation via pre-built packages
+### Installation via pre-built packages (Updated 03/03/2017)
 
-This will work as long as you are using the correct version of linux, otherwise you won't have all the required libraries and some may have been deprecated (though that doesn't stop you manually installing them). In my case I got it to work on Ubuntu 16.04.
+As *OpenCV* is quite picky, I found it best to use a *Python* environment (i.e. *Conda*).
 
-As *OpenCV* is quite picky, I found it best to use a *Python* environment. So grab *Conda* and run the following;
+If you are on a Mac, then the conda-forge packages work fine (thanks @ryanpepper). Install *OpenCV* to an environment using the following;
 ```
-conda create -n opencv -c menpo opencv3 ffmpeg
+conda create -n opencv -c conda-forge opencv numba
 ```
+
+If you are using Ubuntu 16.04, then the following will work;
+```
+conda create -n opencv -c menpo opencv3 ffmpeg numba
+```
+
+
 
 Activate the environment (`source activate opencv`) and try importing (`import cv2`, n.b 2 not 3).
 
