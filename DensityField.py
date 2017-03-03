@@ -12,16 +12,12 @@ class DensityField:
         self._num_colours = len(self._colours)
         
     @jit
-    def update(self, mode, flow_amount, perp_amount):
+    def update(self, flow_amount, perp_amount):
         step = self._shape[1] // 10
         ys = range(step, self._shape[1], step)
         
-        if mode == 0:            
-            rx = np.s_[:flow_amount]
-        elif mode == 1:   
-            x = self._shape[0] // 2
-            rx = np.s_[x - flow_amount // 2 : x + 1 + flow_amount // 2]
-            
+        rx = np.s_[:flow_amount]
+        
         dy = perp_amount // 2
         for i, y in enumerate(ys):
             ry = np.s_[y - dy : y + dy + 1]            

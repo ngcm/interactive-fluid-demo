@@ -55,7 +55,7 @@ class Sim(SimBase):
         
         bound = 0.0 + self._b[0:-2,1:-1] + self._b[2:,1:-1] + self._b[1:-1,0:-2] + self._b[1:-1,2:]
         
-        for i in range(50):
+        for i in range(20):
             p[1:-1,1:-1] = 1 / 4 * (p[1:-1,1:-1] * bound
                 + p[0:-2,1:-1] * self._notb[0:-2,1:-1] 
                 + p[2:,1:-1] * self._notb[2:,1:-1] 

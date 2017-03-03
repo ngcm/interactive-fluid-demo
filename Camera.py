@@ -14,12 +14,11 @@ class Camera:
             self._input_frame = cv2.resize(random, self._size)
             
         self._mask = np.zeros(self._size[::-1], dtype=np.uint8)
-        self._masked_frame = np.zeros_like(self._input_frame)
         
     def __del__(self):
         self._cap.release()
         
-    def update(self, mask, bg_option, mask_level):
+    def update(self, bg_option, mask_level):
         if self._cap.isOpened():
             # update frame if cam is active
             ret, frame = self._cap.read()
@@ -32,17 +31,9 @@ class Camera:
         # generate the mask, invert if necessary
         self._mask = cv2.cvtColor(self._input_frame, cv2.COLOR_RGB2GRAY)
         
-        if bg_option == 0:
-            self._mask = cv2.subtract(self._mask, mask)
-        else:
-            self._mask = cv2.add(self._mask, mask)
-        
         _, self._mask = cv2.threshold(self._mask, mask_level, 255, 
                                    cv2.THRESH_BINARY if bg_option == 1 else 
                                    cv2.THRESH_BINARY_INV)
-                
-        self._masked_frame[:] = 0 if bg_option == 1 else 255
-        self._masked_frame = cv2.add(self._input_frame, 0, dst=self._masked_frame, mask=self._mask)
         
     @property
     def active(self):
@@ -51,10 +42,10 @@ class Camera:
     @property
     def shape(self):
         return self._size
-        
+    
     @property
-    def masked_frame(self):
-        return self._masked_frame
+    def input_frame(self):
+        return self._input_frame
     
     @property
     def mask(self):
