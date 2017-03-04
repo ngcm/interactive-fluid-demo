@@ -73,9 +73,13 @@ if(camera.active):
             output = sim_render * alpha[:,:,np.newaxis] + camera.input_frame * (1/255 - alpha[:,:,np.newaxis])
         else:
             sim.step(fps.last_dt, [])
-            rgb = sim.get_velocity_field_as_RGB(0.25).T * 255 # should be 0.5 (i.e. square root), but this shows the lower velocities better
-            sim_render = np.array(cv2.resize(rgb, (width, height)), dtype=np.uint8)
-            output = cv2.add(cv2.cvtColor(camera.mask, cv2.COLOR_GRAY2BGR), sim_render)
+            velrgb = sim.get_velocity_field_as_RGB(0.25).T * 255 # should be 0.5 (i.e. square root), but this shows the lower velocities better
+            vel_render = np.array(cv2.resize(velrgb, (width, height)), dtype=np.uint8)
+            pressrgb = sim.get_pressure_as_rgb().T * 512
+            press_render = np.array(cv2.resize(pressrgb, (width, height)), dtype=np.uint8)
+            press_render = cv2.blur(press_render, (20, 20), press_render)
+            output = cv2.add(cv2.cvtColor(camera.mask // 8, cv2.COLOR_GRAY2BGR), vel_render)
+            output = cv2.add(output, press_render, output, mask=camera.mask)
  
         # add the GUI       
         text_color = (0, 0, 255) if bgOption.current == 0 else (255, 255, 0)

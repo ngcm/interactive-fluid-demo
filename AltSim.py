@@ -69,9 +69,9 @@ def sub_gradient(v, v0, p, dx):
 def enforce_slip(v, notb, b):
     v[:, b] = 0
     right_edge = np.logical_and(notb[:-1,:], b[1:,:])
-    v[0, :-1,:][right_edge] = v[0, 1:,:][right_edge]
+    v[1, :-1,:][right_edge] = v[1, 1:,:][right_edge]
     left_edge = np.logical_and(notb[1:,:], b[:-1,:])
-    v[0, 1:,:][left_edge] = v[0, :-1,:][left_edge]
+    v[1, 1:,:][left_edge] = v[1, :-1,:][left_edge]
     top_edge = np.logical_and(notb[:,:-1], b[:,1:])
     v[0, :,:-1][top_edge] = v[0, :,:-1][top_edge]
     bottom_edge = np.logical_and(notb[:,1:], b[:,:-1])
@@ -86,6 +86,7 @@ class Sim(SimBase):
         self._div = np.zeros(shape)
         self._p = np.zeros(shape)
         self._vtmp = np.zeros((2, *shape))
+        self._vtmp2 = np.zeros((2, *shape))
         self._dtmp = np.zeros(shape)
         
         xs = np.arange(0.0, shape[0], 1)
@@ -97,8 +98,20 @@ class Sim(SimBase):
         
     @jit    
     def step(self, dt, density_arrays):
+        
         self._vtmp[:], self._xi, self._s = advect_velocity(self._vtmp, self._v, 
             self._b, self._indexArray, self._dx, dt)
+        
+        '''
+        self._vtmp2[:], _, _ = advect_velocity(self._vtmp2, self._v, 
+            self._b, self._indexArray, self._dx, dt)
+        self._vtmp[:], _, _ = advect_velocity(self._vtmp, self._vtmp2, 
+            self._b, self._indexArray, self._dx, -dt)
+        self._vtmp2 = 1.5 * self._v - 0.5 * self._vtmp
+        self._vtmp[:], self._xi, self._s = advect_velocity(self._vtmp, self._vtmp2, 
+            self._b, self._indexArray, self._dx, dt)
+        '''
+        
         self._v[0] = divergence(self._div, self._vtmp, self._notb, self._dx)
         self._p[:] = pressure_solve(self._p, self._div, self._b, self._notb, self._dx)
         self._v[:] = sub_gradient(self._v, self._vtmp, self._p, self._dx)
@@ -107,6 +120,18 @@ class Sim(SimBase):
         for d in density_arrays:
             d[:] = apply_advection(self._dtmp, d, self._xi, self._s)
             d[self._b] = 0
+            
+    @jit
+    def get_pressure_as_rgb(self):        
+        width, height = np.shape(self._p)
+        rgb = np.zeros((3, width, height))
+        pmax = max(np.max(self._p), -np.min(self._p))
+        
+        if pmax > 0:
+            rgb[2, self._p > 0] = self._p[self._p > 0] / pmax
+            rgb[0, self._p < 0] = self._p[self._p < 0] / pmax
+        
+        return rgb
 
         
         
