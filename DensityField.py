@@ -8,7 +8,7 @@ class DensityField:
         
         self._colours = np.array([np.array([1.0, 0.8, 0.2]), 
                                   np.array([0.5, 1.0, 0.5]), 
-                                  np.array([0.6, 0.3, 1.0])])
+                                  np.array([0.6, 0.3, 1.0])]) * 0.5
         self._num_colours = len(self._colours)
         
     @jit
@@ -17,6 +17,9 @@ class DensityField:
         ys = range(step, self._shape[1], step)
         
         rx = np.s_[:flow_amount]
+        
+        self._d[:, rx, :] *= 0.9
+        self._d[:] *= 0.99
         
         dy = step * perp_amount // 20
         for i, y in enumerate(ys):

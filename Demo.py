@@ -57,8 +57,8 @@ if(camera.active):
         
         # apply input velocity
         flowwidth = 1 + int(fps.last_dt * speedOption.current / sim._dx[0])
-        sim.set_velocity(np.s_[0, :, :1], speedOption.current)
-        sim.set_velocity(np.s_[0, :, -1:], speedOption.current)  
+        #sim.set_velocity(np.s_[0, :, :1], speedOption.current)
+        #sim.set_velocity(np.s_[0, :, -1:], speedOption.current)  
         sim.set_velocity(np.s_[0, :flowwidth, :], speedOption.current)
         sim.set_velocity(np.s_[0, -flowwidth:, :], speedOption.current)
         sim.set_boundary(box)              

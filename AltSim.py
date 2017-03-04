@@ -3,6 +3,20 @@ import numpy as np
 
 from SimBase import SimBase
 
+        
+@jit 
+def enforce_slip(v, notb, b):
+    v[:, b] = 0
+    right_edge = np.logical_and(notb[:-1,:], b[1:,:])
+    v[0, :-1,:][right_edge] = v[0, 1:,:][right_edge]
+    left_edge = np.logical_and(notb[1:,:], b[:-1,:])
+    v[0, 1:,:][left_edge] = v[0, :-1,:][left_edge]
+    top_edge = np.logical_and(notb[:,:-1], b[:,1:])
+    v[0, :,:-1][top_edge] = v[0, :,:-1][top_edge]
+    bottom_edge = np.logical_and(notb[:,1:], b[:,:-1])
+    v[0, :, 1:][bottom_edge] = v[0, :, 1:][bottom_edge]
+    return v
+
 class Sim(SimBase):
     
     def __init__(self, shape, diffusion, viscosity):    
@@ -69,6 +83,7 @@ class Sim(SimBase):
         v[0, 1:-1, :] = v0[0, 1:-1, :] - 1 / (2 * self._dx[0]) * (p[2:, :] - p[:-2, :])
         v[1, :, 1:-1] = v0[1, :, 1:-1] - 1 / (2 * self._dx[1]) * (p[:, 2:] - p[:, :-2])
 
+
     @jit    
     def step(self, dt, density_arrays):
         self._updateadvect(dt)
@@ -77,7 +92,7 @@ class Sim(SimBase):
         self._divergence(self._v[0], self._tmp)
         self._pressure_solve(self._p, self._v[0])
         self._sub_gradient(self._v, self._tmp, self._p)
-        self._v[:, self._b] = 0
+        self._v[:] = enforce_slip(self._v, self._notb, self._b)
 
         self._updateadvect(dt)
         for d in density_arrays:
