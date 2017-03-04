@@ -55,14 +55,14 @@ class Sim(SimBase):
         
         bound = 0.0 + self._b[0:-2,1:-1] + self._b[2:,1:-1] + self._b[1:-1,0:-2] + self._b[1:-1,2:]
         
-        for i in range(20):
+        for i in range(30):
             p[1:-1,1:-1] = 1 / 4 * (p[1:-1,1:-1] * bound
                 + p[0:-2,1:-1] * self._notb[0:-2,1:-1] 
                 + p[2:,1:-1] * self._notb[2:,1:-1] 
                 + p[1:-1,0:-2] * self._notb[1:-1,0:-2] 
                 + p[1:-1,2:] * self._notb[1:-1,2:]                
                 - self._dx[0] * self._dx[1] * div[1:-1,1:-1])
-            p[self._b] = 0
+            # p[self._b] = 0
          
     @jit
     def _sub_gradient(self, v, v0, p):        
