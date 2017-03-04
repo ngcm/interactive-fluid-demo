@@ -19,7 +19,7 @@ class DensityField:
         rx = np.s_[:flow_amount]
         
         self._d[:, rx, :] *= 0.9
-        self._d[:] *= 0.99
+        self._d[:] *= 0.999
         
         dy = step * perp_amount // 20
         for i, y in enumerate(ys):

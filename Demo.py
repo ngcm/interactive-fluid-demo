@@ -28,7 +28,7 @@ if(camera.active):
     width, height = camera.shape
     
     # sub-sample the webcam image to fit the fluid sim resolution
-    step = 3
+    step = 2
     sim_shape = (width // step, height // step)
     sim = Sim(sim_shape, 0, 0)
     d = DensityField(sim_shape)
