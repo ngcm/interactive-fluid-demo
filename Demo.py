@@ -3,11 +3,11 @@
 import numpy as np
 import cv2
 
-from Camera import Camera
+from util.Camera import Camera
+from util.FPS_counter import FPS_counter
 from DensityField import DensityField
 from AltSim import Sim
-import Options
-from FPS_counter import FPS_counter
+import util.Options as Options
 
 cv2.startWindowThread()
 cv2.namedWindow("window", flags=cv2.WND_PROP_FULLSCREEN)
@@ -18,9 +18,9 @@ if(camera.active):
     
     bgOption = Options.Cycle('BG', 'b', ['white', 'black'], 0)
     speedOption = Options.Range('Inflow Speed', ['-','='], [0.02, 1], 0.02, 0.2)
-    levelOption = Options.Range('Mask Threshold', ['[',']'], [0, 255], 8, 60)
-    smokeStreams = Options.Range('Smoke Streams', [',','.'], [1, 50], 1, 10)
-    smokeAmount = Options.Range('Smoke Amount', ['\'','#'], [1, 10], 1, 3)
+    levelOption = Options.Range('Mask Threshold', ['[',']'], [0, 255], 8, 24)
+    smokeStreams = Options.Range('Smoke Streams', [',','.'], [1, 50], 1, 50)
+    smokeAmount = Options.Range('Smoke Amount', ['\'','#'], [1, 10], 1, 7)
     debugMode = Options.Cycle('Mode', 'd', ['Normal', 'Debug'], 0)    
     options = [bgOption, speedOption, levelOption, smokeStreams, smokeAmount, debugMode]
 
@@ -28,8 +28,8 @@ if(camera.active):
     width, height = camera.shape
     
     # sub-sample the webcam image to fit the fluid sim resolution
-    step = 2
-    sim_shape = (width // step, height // step)
+    step = 1.5
+    sim_shape = (int(width / step), int(height / step))
     sim = Sim(sim_shape, 0, 0)
     d = DensityField(sim_shape)
     
@@ -50,10 +50,10 @@ if(camera.active):
         box = np.array(cv2.resize(camera.mask, sim_shape).T, dtype=bool)
 
         # add the bounding box
-        box[:, :1] = True
-        box[:, -1:] = True
-        box[:1, :] = True
-        box[-1:, :] = True
+        #box[:, :1] = True
+        #box[:, -1:] = True
+        #box[:1, :] = True
+        #box[-1:, :] = True
         
         # apply input velocity
         flowwidth = 1 + int(fps.last_dt * speedOption.current / sim._dx[0])
@@ -112,6 +112,7 @@ if(camera.active):
         elif key == ord('r'):
             sim.reset()
             d.reset()
+            camera.reset()
             
 else:
     print("ERROR: Couldn't capture frame. Is Webcam available/enabled?")

@@ -1,3 +1,6 @@
 __pycache__
 .ipynb_checkpoints
 cv.so
+csim/build
+csim/AltSim.c*
+csim/*.save

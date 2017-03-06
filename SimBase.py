@@ -1,12 +1,12 @@
 from numba import jit
 import numpy as np
 
-import colour_util
+import util.colour_util as colour_util
 
 class SimBase:
     def __init__(self, shape):
         self._shape = shape
-        self._v = np.zeros((2, *shape), dtype=np.float32)
+        self._v = np.zeros((2, *shape))
         self._b = np.zeros(shape, dtype=bool)
         self._notb = np.logical_not(self._b)        
         self._dx = np.array([4/3,1]) / np.array(shape)

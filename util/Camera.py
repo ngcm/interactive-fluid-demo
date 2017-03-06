@@ -35,6 +35,11 @@ class Camera:
                                    cv2.THRESH_BINARY if bg_option == 1 else 
                                    cv2.THRESH_BINARY_INV)
         
+    def reset(self):
+        if not self._cap.isOpened():           
+            random = np.array(np.power(np.random.rand(24, 16, 3), 3) * 255, dtype=np.uint8)
+            self._input_frame = cv2.resize(random, self._size)
+        
     @property
     def active(self):
         return self._cap.isOpened() or self._no_cam_mode

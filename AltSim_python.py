@@ -45,11 +45,11 @@ def divergence(div, v, notb, dx):
         
 @jit
 def pressure_solve(p, div, b, notb, dx):
-    p[notb] = 0
+    p[:] = 0
     
     bound = 0.0 + b[0:-2,1:-1] + b[2:,1:-1] + b[1:-1,0:-2] + b[1:-1,2:]
     
-    for i in range(50):
+    for i in range(20):
         p[1:-1,1:-1] = 1 / 4 * (p[1:-1,1:-1] * bound
             + p[0:-2,1:-1] * notb[0:-2,1:-1] 
             + p[2:,1:-1] * notb[2:,1:-1] 
@@ -112,7 +112,7 @@ class Sim(SimBase):
             self._b, self._indexArray, self._dx, dt)
         '''
         
-        self._div[:] = divergence(self._div, self._vtmp, self._notb, self._dx)
+        self._v[0] = divergence(self._div, self._vtmp, self._notb, self._dx)
         self._p[:] = pressure_solve(self._p, self._div, self._b, self._notb, self._dx)
         self._v[:] = sub_gradient(self._v, self._vtmp, self._p, self._dx)
         self._v[:] = enforce_slip(self._v, self._notb, self._b)
