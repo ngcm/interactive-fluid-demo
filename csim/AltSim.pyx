@@ -8,19 +8,19 @@ cdef extern from "altsim.h":
                           double * divergence, unsigned char * boundary, 
                           int Nx, int Ny, double dx, double dy)
     
-def pressure_solve(np.ndarray[double, mode="c", ndim=2] p, div, b, notb, dx):
+def pressure_solve(np.ndarray[double, mode="c", ndim=2] p, 
+                   np.ndarray[double, mode="c", ndim=2] div, 
+                   b, notb, dx):
 
     cdef int Nx = np.shape(p)[0]
     cdef int Ny = np.shape(p)[1]
     cdef double deltax = dx[0]
     cdef double deltay = dx[1]
-          
-    cdef np.ndarray[np.double_t, mode="c", ndim=2] pressure = np.array(p, order='C')    
+           
     cdef np.ndarray[np.double_t, mode="c", ndim=2] pressure_buffer = np.array(p, order='C')
-    cdef np.ndarray[np.double_t, mode="c", ndim=2] divergence = np.array(div, order='C')
     cdef np.ndarray[np.uint8_t, mode="c", ndim=2] boundary = np.array(b.view(np.uint8), order='C')
     
-    C_pressure_solve(&p[0, 0], &pressure_buffer[0, 0], &divergence[0, 0], 
+    C_pressure_solve(&p[0, 0], &pressure_buffer[0, 0], &div[0, 0], 
                      &boundary[0, 0], Nx, Ny, deltax, deltay)
     
     return p

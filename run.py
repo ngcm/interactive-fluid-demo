@@ -6,30 +6,37 @@ import cv2
 from util.Camera import Camera
 from util.FPS_counter import FPS_counter
 from DensityField import DensityField
-from AltSim import Sim
 import util.Options as Options
+import sys
+
+if len(sys.argv) > 1 and sys.argv[1] == "C":
+    from Sim_C import Sim
+else:
+    from Sim_numpy_jit import Sim
 
 cv2.startWindowThread()
 cv2.namedWindow("window", flags=cv2.WND_PROP_FULLSCREEN)
 
 camera = Camera(no_cam_mode=True)
 
+simResmultiplier = 0.7
+
 if(camera.active):
     
-    bgOption = Options.Cycle('BG', 'b', ['white', 'black'], 0)
+    bgOption = Options.Cycle('BG', 'b', ['white', 'black'], 1)
     speedOption = Options.Range('Inflow Speed', ['-','='], [0.02, 1], 0.02, 0.2)
-    levelOption = Options.Range('Mask Threshold', ['[',']'], [0, 255], 8, 24)
-    smokeStreams = Options.Range('Smoke Streams', [',','.'], [1, 50], 1, 50)
-    smokeAmount = Options.Range('Smoke Amount', ['\'','#'], [1, 10], 1, 7)
+    levelOption = Options.Range('Mask Threshold', ['[',']'], [0, 255], 8, 76)
+    smokeStreams = Options.Range('Smoke Streams', [',','.'], [1, 50], 1, 35)
+    smokeAmount = Options.Range('Smoke Amount', ['\'','#'], [1, 10], 1, 4)
+    simRes = Options.Range('Sim Res', ['9','0'], [0.1, 2.0], 0.1, simResmultiplier)
     debugMode = Options.Cycle('Mode', 'd', ['Normal', 'Debug'], 0)    
-    options = [bgOption, speedOption, levelOption, smokeStreams, smokeAmount, debugMode]
+    options = [bgOption, speedOption, levelOption, smokeStreams, smokeAmount, simRes, debugMode]
 
     # initialise the fluid sim arrays
     width, height = camera.shape
     
     # sub-sample the webcam image to fit the fluid sim resolution
-    step = 1.5
-    sim_shape = (int(width / step), int(height / step))
+    sim_shape = (int(width * simRes.current), int(height * simRes.current))
     sim = Sim(sim_shape, 0, 0)
     d = DensityField(sim_shape)
     
@@ -39,6 +46,12 @@ if(camera.active):
 
     while(True):    
         fps.update()     
+        
+        if simRes.current != simResmultiplier:
+            simResmultiplier = simRes.current
+            sim_shape = (int(width * simRes.current), int(height * simRes.current))
+            sim = Sim(sim_shape, 0, 0)
+            d = DensityField(sim_shape)
         
         if display_counter > 0:
             display_counter -= fps.last_dt

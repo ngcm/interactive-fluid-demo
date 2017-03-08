@@ -44,7 +44,7 @@ class Sim(SimBase):
         
         self._div = np.zeros(shape)
         self._p = np.zeros(shape)
-        self._vtmp = np.ascontiguousarray(np.zeros_like(self._v, order='C'))
+        self._vtmp = np.zeros_like(self._v, order='C')
         self._vtmp2 = np.zeros_like(self._v, order='C')
         self._dtmp = np.zeros(shape)
         
@@ -59,20 +59,18 @@ class Sim(SimBase):
     @jit
     def step(self, dt, density_arrays):
         
-        dt /= 2
-        for _ in range(2):
-            advect_velocity(self._vtmp, self._v, 
+        dt /= 3
+        for _ in range(3):
+            advect_velocity(self._vtmp2, self._v, 
                 self._b, self._indexArray, self._dx, dt, self._xi, self._s)
             
-            '''
-            self._vtmp2[:], _, _ = advect_velocity(self._vtmp2, self._v, 
-                self._b, self._indexArray, self._dx, dt)
-            self._vtmp[:], _, _ = advect_velocity(self._vtmp, self._vtmp2, 
-                self._b, self._indexArray, self._dx, -dt)
-            self._vtmp2 = 1.5 * self._v - 0.5 * self._vtmp
-            self._vtmp[:], self._xi, self._s = advect_velocity(self._vtmp, self._vtmp2, 
-                self._b, self._indexArray, self._dx, dt)
-            '''
+            advect_velocity(self._vtmp, self._vtmp2, 
+                self._b, self._indexArray, self._dx, -dt, self._xi, self._s)
+            
+            self._vtmp2 = 1.3 * self._v - 0.3 * self._vtmp
+                        
+            advect_velocity(self._vtmp, self._vtmp2, 
+                self._b, self._indexArray, self._dx, dt, self._xi, self._s)
                     
             self._div[:] = divergence(self._div, self._vtmp, self._notb, self._dx)
             self._p[:] = pressure_solve(self._p, self._div, self._b, self._notb, self._dx)

@@ -2,8 +2,7 @@ all: clean
 	python setup.py build_ext --inplace
 
 test: all
-	python ../Demo.py
-
+	python ../run.py C
 
 clean:
 	rm -f *.c
