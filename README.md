@@ -8,15 +8,15 @@ The aim of this project is to create an engaging, interactive demonstration of t
 
 As a proof-of-concept, I have combined a simple real-time 2D fluid dynamics simulation with live webcam footage, using *Python* and a computer vision library, *OpenCV*. This can be interacted with directly and simultaneously used to examine the aerodynamics of any object (like a car built from Lego(tm)) placed in front of the camera.
 
-[![FluidDemo](https://github.com/ngcm/interactive-fluid-demo/blob/master/FluidDemo.png)](https://raw.githubusercontent.com/ngcm/interactive-fluid-demo/blob/master/FluidDemo.webm)
-
-
-![FluidDemo](https://github.com/ngcm/interactive-fluid-demo/blob/master/FluidDemoDebug.png)
+## Click for Video
+[![FluidDemo](https://github.com/ngcm/interactive-fluid-demo/blob/master/FluidDemo.png)](https://raw.githubusercontent.com/ngcm/interactive-fluid-demo/master/FluidDemo.webm)
 
 Possible improvements;
-* The model is very rough, and does not handle boundaries very well.
-* Replace the model entirely (SPH), as this one tends to soften too much.
 * Improve the subject/background separation, perhaps using *OpenCV*'s image processing (chromakey?)
+
+## How to run
+Run by calling `python run.py`. To use the Cython multithreaded version call `make` in the `csim` folder then in the main folder call `python run.py C`. Follow the onscreen prompt for various ways to configure the sim (make sure to hold the key down for a bit, the key polling isn't good).
+
 
 ## VirtualBox
 
