@@ -35,5 +35,9 @@ class SimBase:
         angles = np.arctan2(self._v[0], self._v[1])
         hues = (1 + angles / np.pi) / 2
         rel_rgb = colour_util.to_rgb(hues) * (self._v[0]**2 + self._v[1]**2) ** power
-        
-        return rel_rgb / np.max(rel_rgb)
+        max_rgb = np.max(rel_rgb)
+                                    
+        if max_rgb > 0:               
+            return rel_rgb / np.max(rel_rgb)
+        else:
+            return rel_rgb

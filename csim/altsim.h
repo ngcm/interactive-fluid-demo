@@ -28,7 +28,7 @@ void C_advect_velocity(
     // memset(advect_indexes, 0, 2 * Nx * Ny * sizeof(int));
     // memset(advect_lerps, 0, 2 * Nx * Ny * sizeof(double));
         
-    #pragma omp parallel for schedule(dynamic, 32) private(y, idx, xa, ya, xi, yi, s, t, iidx)
+    #pragma omp parallel for schedule(dynamic, 16) private(y, idx, xa, ya, xi, yi, s, t, iidx)
     for(x = 0; x < Nx; ++x) {
         for(y = 0; y < Ny; ++y) {
             idx = y + x * Ny;
@@ -72,7 +72,7 @@ void C_apply_advection(double * d, const double * const d0,
     int vyidx = Nx * Ny;
     int x, y, idx, iidx;
         
-    #pragma omp parallel for schedule(dynamic, 32) private(y, idx, iidx)
+    #pragma omp parallel for schedule(dynamic, 16) private(y, idx, iidx)
     for(x = 0; x < Nx; ++x) {
         for(y = 0; y < Ny; ++y) {
             idx = y + x * Ny;
@@ -108,7 +108,7 @@ void C_pressure_solve(
     // make sure this is a multiple of 2 steps
     for(k = 0; k < 50; ++k) { 
         
-        #pragma omp parallel for schedule(dynamic, 32) private(y, idx)
+        #pragma omp parallel for schedule(dynamic, 16) private(y, idx)
         for(x = 1; x < Nx - 1; ++x) {
             for(y = 1; y < Ny - 1; ++y) {
                 idx = y + x * Ny;

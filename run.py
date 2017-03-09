@@ -9,7 +9,7 @@ from DensityField import DensityField
 import util.Options as Options
 import sys
 
-if len(sys.argv) > 1 and sys.argv[1] == "C":
+if True or len(sys.argv) > 1 and sys.argv[1] == "C":
     from Sim_C import Sim
 else:
     from Sim_numpy_jit import Sim
@@ -19,15 +19,15 @@ cv2.namedWindow("window", flags=cv2.WND_PROP_FULLSCREEN)
 
 camera = Camera(no_cam_mode=True)
 
-simResmultiplier = 0.7
+simResmultiplier = 0.5
 
 if(camera.active):
     
-    bgOption = Options.Cycle('BG', 'b', ['white', 'black'], 1)
+    bgOption = Options.Cycle('BG', 'b', ['white', 'black'], 0)
     speedOption = Options.Range('Inflow Speed', ['-','='], [0.02, 1], 0.02, 0.2)
-    levelOption = Options.Range('Mask Threshold', ['[',']'], [0, 255], 8, 76)
-    smokeStreams = Options.Range('Smoke Streams', [',','.'], [1, 50], 1, 35)
-    smokeAmount = Options.Range('Smoke Amount', ['\'','#'], [1, 10], 1, 4)
+    levelOption = Options.Range('Mask Threshold', ['[',']'], [0, 1], 0.1, 0.2)
+    smokeStreams = Options.Range('Smoke Streams', [',','.'], [1, 50], 1, 16)
+    smokeAmount = Options.Range('Smoke Amount', ['\'','#'], [1, 10], 1, 10)
     simRes = Options.Range('Sim Res', ['9','0'], [0.1, 2.0], 0.1, simResmultiplier)
     debugMode = Options.Cycle('Mode', 'd', ['Normal', 'Debug'], 0)    
     options = [bgOption, speedOption, levelOption, smokeStreams, smokeAmount, simRes, debugMode]
