@@ -11,7 +11,7 @@ class Cycle:
         self._cycle_time = cycle_time
         
     def update(self, key, dt):
-        if key == ord(self._key):
+        if key == self._key:
             self.cycle();
             time.sleep(0.5)
             self._timer = 0
@@ -50,10 +50,10 @@ class Range:
         self._step = step
                 
     def update(self, key, dt):
-        if key == ord(self._keys[0]):            
+        if key == self._keys[0]:            
             self._current = max(self._current - self._step, self._range[0])
             return True        
-        if key == ord(self._keys[1]):
+        if key == self._keys[1]:
             self._current = min(self._current + self._step, self._range[1])
             return True
         else:

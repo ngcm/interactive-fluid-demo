@@ -4,7 +4,7 @@ from Cython.Distutils import build_ext as build_pyx
 import numpy
 import os
 
-os.environ['CC'] = 'gcc-6'
+# os.environ['CC'] = 'gcc-6'
 
 setup(name='AltSim',
       ext_modules=[Extension('AltSim', ['AltSim.pyx'],

@@ -6,6 +6,7 @@ import cv2
 from util.Camera import Camera
 from util.FPS_counter import FPS_counter
 from DensityField import DensityField
+from pynput import keyboard
 import util.Options as Options
 import sys
 
@@ -13,9 +14,15 @@ if True or len(sys.argv) > 1 and sys.argv[1] == "C":
     from Sim_C import Sim
 else:
     from Sim_numpy_jit import Sim
+    
+pressed_keys = []
+def on_release(key):
+    if hasattr(key, 'char'):
+        pressed_keys.append(key.char)
 
 cv2.startWindowThread()
 cv2.namedWindow("window", flags=cv2.WND_PROP_FULLSCREEN)
+cv2.setWindowProperty("window", cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
 
 camera = Camera(no_cam_mode=True)
 
@@ -44,7 +51,12 @@ if(camera.active):
     
     display_counter = 0 # display values for a short time if they change
 
-    while(True):    
+    key_listner = keyboard.Listener(on_press=None, on_release=on_release)
+    key_listner.start()
+        
+    run = True
+    
+    while(run):
         fps.update()     
         
         if simRes.current != simResmultiplier:
@@ -109,23 +121,23 @@ if(camera.active):
         # render the output
         cv2.imshow('window', output)
         
-        # use a portion of the remaining frame time to poll key imputs
-        key = cv2.waitKey(max(1, int(fps.dt_remaining * 500))) & 0xFF
-        
-        # update the options (poll for input, cycle)
-        for option in options:
-            if option.update(key, fps.last_dt):
-                display_counter = 1
-                         
-        # poll for quit, reset
-        if key == ord('q'):
-            while cv2.waitKey(100) > 0:
-                None
-            break
-        elif key == ord('r'):
-            sim.reset()
-            d.reset()
-            camera.reset()
+        for key in pressed_keys:
+            # update the options (poll for input, cycle)
+            for option in options:
+                if option.update(key, fps.last_dt):
+                    display_counter = 1
+                             
+            # poll for quit, reset
+            if key == 'q':
+                run = False
+            elif key == 'r':
+                sim.reset()
+                d.reset()
+                camera.reset()
+            
+        pressed_keys = []
+            
+    key_listner.stop()
             
 else:
     print("ERROR: Couldn't capture frame. Is Webcam available/enabled?")

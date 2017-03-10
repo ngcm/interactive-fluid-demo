@@ -4,14 +4,13 @@ import cv2
 
 class Camera:    
     
-    
     def _resize_frame(self, frame):
         if self._flip:
             return cv2.resize(cv2.flip(frame, 1), self._size)
         else:
             return cv2.resize(frame, self._size)        
     
-    def __init__(self, size=(640,480), no_cam_mode=False, flip=False, bg_subtract=False):     
+    def __init__(self, size=(640,480), no_cam_mode=False, flip=True, bg_subtract=False):     
         self._no_cam_mode = no_cam_mode
         self._cap = cv2.VideoCapture(0)
         self._size = size
@@ -21,9 +20,20 @@ class Camera:
         self._mask = np.zeros(self._size[::-1], dtype=np.uint8)  
         self._input_frame = np.zeros((*self._size[::-1], 3), dtype=np.uint8) 
         
-        if not self._cap.isOpened():           
+        if not self._cap.isOpened():
+            
             random = np.array(np.power(np.random.rand(16, 8, 3), 3) * 255, dtype=np.uint8)
-            self._input_frame = self._resize_frame(random)      
+            self._input_frame = self._resize_frame(random)   
+            
+            ''' HSV test image
+            test_image = np.zeros_like(self._input_frame, dtype=np.uint8)
+            x = np.linspace(0, 255, size[0], dtype=np.uint8)
+            y = np.linspace(255, 0, size[1], dtype=np.uint8)
+            XX, YY = np.meshgrid(x, y)
+            test_image[:, :, 1] = XX
+            test_image[:, :, 2] = YY
+            self._input_frame = cv2.cvtColor(test_image, cv2.COLOR_HSV2BGR)
+            '''
             
     def __del__(self):
         self._cap.release()
@@ -39,7 +49,7 @@ class Camera:
             None#self._input_frame = self._input_frame.take(range(-1, self._size[1] - 1), axis=0, mode='wrap')
                                
         if self._bg_subtract:
-            self._mask = self._fgbg.apply(self._input_frame, learningRate=0.1)
+            self._mask = self._fgbg.apply(self._input_frame, learningRate=0.001)
         else:           
             # generate the mask, invert if necessary
             
@@ -49,20 +59,9 @@ class Camera:
                 x = np.array(hsv[:,:,1], np.float) / 255
                 x = 10 * x * x + mask_level
                 y = np.array(hsv[:,:,2], np.float) / 255
-                self._mask[y < x] = 255
+                self._mask[y <= x] = 255
             else:
                 self._mask[hsv[:,:,2] > (255 * mask_level)] = 255
-            
-                      
-                      
-            '''
-            hsv = (255 - hsv[:,:,1]) * 0.75 * dtype=np.uint32) * hsv[:,:,2] * / 255
-            # hsv = np.array(255 - hsv[:,:,1], dtype=np.uint32) * hsv[:,:,2] / 255
-            self._mask[:] = np.array(hsv, dtype=np.uint8)
-            _, self._mask = cv2.threshold(self._mask, mask_level, 255, 
-                                       cv2.THRESH_BINARY if bg_option == 1 else 
-                                       cv2.THRESH_BINARY_INV)
-            '''
         
     def reset(self):
         if not self._cap.isOpened():           

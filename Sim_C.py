@@ -59,8 +59,8 @@ class Sim(SimBase):
     @jit
     def step(self, dt, density_arrays):
         
-        dt /= 3
-        for _ in range(3):
+        dt /= 1
+        for _ in range(1):
             advect_velocity(self._vtmp2, self._v, 
                 self._b, self._indexArray, self._dx, dt, self._xi, self._s)
             
