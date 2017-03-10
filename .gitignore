@@ -4,3 +4,4 @@ cv.so
 csim/build
 csim/AltSim.c*
 csim/*.save
+profile*

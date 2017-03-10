@@ -69,13 +69,13 @@ def sub_gradient(v, v0, p, dx):
 def enforce_slip(v, notb, b):
     v[:, b] = 0
     right_edge = np.logical_and(notb[:-1,:], b[1:,:])
-    v[1, :-1,:][right_edge] = v[1, 1:,:][right_edge]
+    v[0, :-1,:][right_edge] = v[0, 1:,:][right_edge]
     left_edge = np.logical_and(notb[1:,:], b[:-1,:])
-    v[1, 1:,:][left_edge] = v[1, :-1,:][left_edge]
+    v[0, 1:,:][left_edge] = v[0, :-1,:][left_edge]
     top_edge = np.logical_and(notb[:,:-1], b[:,1:])
-    v[0, :,:-1][top_edge] = v[0, :,:-1][top_edge]
+    v[1, :,:-1][top_edge] = v[1, :,:-1][top_edge]
     bottom_edge = np.logical_and(notb[:,1:], b[:,:-1])
-    v[0, :, 1:][bottom_edge] = v[0, :, 1:][bottom_edge]
+    v[1, :, 1:][bottom_edge] = v[1, :, 1:][bottom_edge]
     return v
 
 class Sim(SimBase):

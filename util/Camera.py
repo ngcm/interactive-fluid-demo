@@ -1,3 +1,4 @@
+from numba import jit
 import numpy as np
 import cv2
 
@@ -38,6 +39,7 @@ class Camera:
     def __del__(self):
         self._cap.release()
         
+    @jit
     def update(self, bg_option, mask_level):
         if self._cap.isOpened():
             # update frame if cam is active
@@ -61,7 +63,7 @@ class Camera:
                 y = np.array(hsv[:,:,2], np.float) / 255
                 self._mask[y <= x] = 255
             else:
-                self._mask[hsv[:,:,2] > (255 * mask_level)] = 255
+                self._mask[hsv[:,:,2] > (255 * (1 - mask_level))] = 255
         
     def reset(self):
         if not self._cap.isOpened():           
@@ -84,26 +86,7 @@ class Camera:
     def mask(self):
         return self._mask
     
+    @jit
     def get_mask(self, size, transpose):
         return cv2.resize(self._mask, size).T
         
-    '''
-cv2.startWindowThread()
-cv2.namedWindow("FluidSim", flags=cv2.WND_PROP_FULLSCREEN)
-
-a = Camera(no_cam_mode=True)
-
-while True:
-    a.update(0, 120)    
-    cv2.imshow('FluidSim', a.masked_frame)
-    
-    key = cv2.waitKey(1) & 0xFF
-    if key == ord('q'):
-            break
-
-
-cv2.destroyWindow('FluidSim')
-cv2.waitKey(1)
-cv2.waitKey(1)
-cv2.waitKey(1)
-'''

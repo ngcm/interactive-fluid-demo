@@ -3,39 +3,7 @@ import numpy as np
 
 from SimBase import SimBase
 
-from csim.AltSim import pressure_solve, advect_velocity, apply_advection
-  
-          
-@jit
-def divergence(div, v, notb, dx):
-    div[-1,:] = 0
-    div[:-1, :] = v[0, 1:, :] * notb[1:, :] / (2 * dx[0])
-    div[1:, :] -= v[0, :-1, :] * notb[:-1, :] / (2 * dx[0])
-    div[:, :-1] += v[1, :, 1:] * notb[:, 1:] / (2 * dx[1])
-    div[:, 1:] -= v[1, :, :-1] * notb[:, :-1] / (2 * dx[1])  
-    #div[self._b] = 0
-    return div
-      
-  
-@jit
-def sub_gradient(v, v0, p, dx):        
-    v[0, 1:-1, :] = v0[0, 1:-1, :] - 1 / (2 * dx[0]) * (p[2:, :] - p[:-2, :])
-    v[1, :, 1:-1] = v0[1, :, 1:-1] - 1 / (2 * dx[1]) * (p[:, 2:] - p[:, :-2])
-    return v
-        
-  
-@jit
-def enforce_slip(v, notb, b):
-    v[:, b] = 0
-    right_edge = np.logical_and(notb[:-1,:], b[1:,:])
-    v[1, :-1,:][right_edge] = v[1, 1:,:][right_edge]
-    left_edge = np.logical_and(notb[1:,:], b[:-1,:])
-    v[1, 1:,:][left_edge] = v[1, :-1,:][left_edge]
-    top_edge = np.logical_and(notb[:,:-1], b[:,1:])
-    v[0, :,:-1][top_edge] = v[0, :,:-1][top_edge]
-    bottom_edge = np.logical_and(notb[:,1:], b[:,:-1])
-    v[0, :, 1:][bottom_edge] = v[0, :, 1:][bottom_edge]
-    return v
+from csim.AltSim import cstep
 
 class Sim(SimBase):
     
@@ -59,28 +27,10 @@ class Sim(SimBase):
     @jit
     def step(self, dt, density_arrays):
         
-        dt /= 1
-        for _ in range(1):
-            advect_velocity(self._vtmp2, self._v, 
-                self._b, self._indexArray, self._dx, dt, self._xi, self._s)
+        cstep(self._v, self._vtmp, self._vtmp2, self._p, self._div, density_arrays, 
+              self._b, self._xi, self._s, self._dx, dt)
             
-            advect_velocity(self._vtmp, self._vtmp2, 
-                self._b, self._indexArray, self._dx, -dt, self._xi, self._s)
-            
-            self._vtmp2 = 1.3 * self._v - 0.3 * self._vtmp
-                        
-            advect_velocity(self._vtmp, self._vtmp2, 
-                self._b, self._indexArray, self._dx, dt, self._xi, self._s)
-                    
-            self._div[:] = divergence(self._div, self._vtmp, self._notb, self._dx)
-            self._p[:] = pressure_solve(self._p, self._div, self._b, self._notb, self._dx)
-            self._v[:] = sub_gradient(self._v, self._vtmp, self._p, self._dx)
-            self._v[:] = enforce_slip(self._v, self._notb, self._b)
-    
-            for d in density_arrays:
-                d[:] = apply_advection(self._dtmp, d, self._b, self._xi, self._s)
-            
-
+    @jit
     def get_pressure_as_rgb(self):        
         width, height = np.shape(self._p)
         rgb = np.zeros((3, width, height))

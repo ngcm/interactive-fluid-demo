@@ -4,7 +4,7 @@ import numpy as np
 class DensityField:
     def __init__(self, shape):        
         self._shape = shape
-        self._d = np.zeros((3, *shape))
+        self._d = np.zeros((3, *shape), order='C')
         
         self._colours = np.array([np.array([1.0, 0.8, 0.2]), 
                                   np.array([0.5, 1.0, 0.5]), 
@@ -34,11 +34,11 @@ class DensityField:
     def field(self):
         return self._d
     
-    @property
-    def colour_field(self):
+    @jit
+    def get_colour_field(self):
         return np.dot(self._colours, self._d.reshape(self._num_colours, 
             -1)).reshape(np.shape(self._d))
     
-    @property
-    def alpha(self):
+    @jit
+    def get_alpha(self):
         return np.clip(np.sqrt(np.sum(self._d, axis=0)), 0, 1)
