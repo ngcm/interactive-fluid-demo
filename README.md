@@ -37,9 +37,22 @@ conda create -n opencv -c conda-forge opencv numba
 
 If you are using Ubuntu 16.04, then the following will work;
 ```
-conda create -n opencv -c menpo opencv3 ffmpeg numba
+conda create -n opencv -c menpo opencv3 numba Cython
 ```
 
+Then;
+```
+source activate opencv
+pip install pynput
+```
+and;
+```
+python run.py
+```
+or after calling make in the `csim` directory
+```
+python run.py C
+```
 
 
 Activate the environment (`source activate opencv`) and try importing (`import cv2`, n.b 2 not 3).
