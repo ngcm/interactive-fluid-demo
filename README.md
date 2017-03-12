@@ -32,12 +32,12 @@ As *OpenCV* is quite picky, I found it best to use a *Python* environment (i.e. 
 
 If you are on a Mac, then the conda-forge packages work fine (thanks [ryanpepper](https://github.com/ryanpepper)). Install *OpenCV* to an environment using the following;
 ```
-conda create -n opencv -c conda-forge opencv numba
+conda create -n opencv -c conda-forge opencv numba cython
 ```
 
 If you are using Ubuntu 16.04, then the following will work;
 ```
-conda create -n opencv -c menpo opencv3 numba Cython
+conda create -n opencv -c menpo opencv3 numba cython
 ```
 
 Then;
