@@ -39,7 +39,7 @@ class Camera:
         self._cap.release()
 
     @jit
-    def update(self, bg_option, mask_level):
+    def update(self, bg_option, mask_level, mask_width):
         if self._cap.isOpened():
             # update frame if cam is active
             ret, frame = self._cap.read()
@@ -56,9 +56,12 @@ class Camera:
             # generate the mask, invert if necessary
             self._mask[:] = 0
             hsv = cv2.cvtColor(self._input_frame, cv2.COLOR_BGR2HSV)
-            if bg_option == 0:
+            if bg_option == 3:
+                x = np.abs(np.array(hsv[:,:,0], np.float) / 180 - mask_level)
+                self._mask[x > mask_width] = 255
+            elif bg_option == 0:
                 x = np.array(hsv[:,:,1], np.float) / 255
-                x = 10 * x * x + mask_level
+                x = 1 / mask_width * x * x + mask_level
                 y = np.array(hsv[:,:,2], np.float) / 255
                 self._mask[y <= x] = 255
             else:

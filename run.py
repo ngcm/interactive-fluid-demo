@@ -36,13 +36,14 @@ def run_sim(camera, pressed_keys, simResmultiplier):
 
     simRes = Options.Range('Sim Res', ['9','0'], [0.1, 2.0], 0.1, simResmultiplier)
     speedOption = Options.Range('Inflow Speed', ['-','='], [0.02, 1], 0.02, 0.2)
-    smokeStreams = Options.Range('Smoke Streams', [',','.'], [1, 50], 1, 16)
+    smokeStreams = Options.Range('Smoke Streams', ['[',']'], [1, 50], 1, 16)
     smokeAmount = Options.Range('Smoke Amount', ['\'','#'], [1, 10], 1, 10)
-    bgOption = Options.Cycle('BG', 'b', ['white', 'black', 'subtract'], 1)
-    levelOption = Options.Range('Mask Threshold', ['[',']'], [0, 1], 0.1, 0.4)
+    bgOption = Options.Cycle('BG', 'b', ['white', 'black', 'subtract', 'hue'], 1)
+    levelOption = Options.Range('Mask Threshold', ['1','2'], [0, 1], 0.1, 0.4)
+    widthOption = Options.Range('Mask Width', ['3','4'], [0, 0.5], 0.05, 0.1)
     mask_render = Options.Cycle('Render Mask', 'm', ['false', 'true'], 1)
     debugMode = Options.Cycle('Mode', 'd', ['Normal', 'Debug'], 0)
-    options = [simRes, speedOption, smokeStreams, smokeAmount, bgOption, levelOption, mask_render, debugMode]
+    options = [simRes, speedOption, smokeStreams, smokeAmount, bgOption, levelOption, widthOption, mask_render, debugMode]
 
     # sub-sample the webcam image to fit the fluid sim resolution
     sim = Sim(camera.shape, simRes.current, 0, 0)
@@ -67,7 +68,7 @@ def run_sim(camera, pressed_keys, simResmultiplier):
             display_counter -= fps.last_dt
 
         # update input image
-        camera.update(bgOption.current, levelOption.current)
+        camera.update(bgOption.current, levelOption.current, widthOption.current)
 
         # copy the webcam generated mask into the boundary
         box = np.array(cv2.resize(camera.mask, sim.shape).T, dtype=bool)
@@ -110,7 +111,7 @@ def run_sim(camera, pressed_keys, simResmultiplier):
             # update the options (poll for input, cycle)
             for option in options:
                 if option.update(key, fps.last_dt):
-                    display_counter = 1
+                    display_counter = 3
 
             # poll for quit, reset
             if key == 'q':
