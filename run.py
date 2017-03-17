@@ -17,8 +17,8 @@ else:
     print("using Sim_numpy_jit")
     from Sim_numpy_jit import Sim
 
-
-fullscreen = False
+simResmultiplier = 0.7
+fullscreen = True
 flip = False
 
 pressed_keys = []
@@ -38,9 +38,9 @@ def run_sim(camera, pressed_keys, simResmultiplier):
     speedOption = Options.Range('Inflow Speed', ['-','='], [0.02, 1], 0.02, 0.2)
     smokeStreams = Options.Range('Smoke Streams', ['[',']'], [1, 50], 1, 16)
     smokeAmount = Options.Range('Smoke Amount', ['\'','#'], [1, 10], 1, 10)
-    bgOption = Options.Cycle('BG', 'b', ['white', 'black', 'subtract', 'hue'], 1)
-    levelOption = Options.Range('Mask Threshold', ['1','2'], [0, 1], 0.1, 0.4)
-    widthOption = Options.Range('Mask Width', ['3','4'], [0, 0.5], 0.05, 0.1)
+    bgOption = Options.Cycle('BG', 'b', ['white', 'black', 'subtract', 'hue'], 2)
+    levelOption = Options.Range('Mask Threshold', ['1','2'], [0, 1], 0.03, 0.4)
+    widthOption = Options.Range('Mask Width', ['3','4'], [0, 0.5], 0.01, 0.1)
     mask_render = Options.Cycle('Render Mask', 'm', ['false', 'true'], 1)
     debugMode = Options.Cycle('Mode', 'd', ['Normal', 'Debug'], 0)
     options = [simRes, speedOption, smokeStreams, smokeAmount, bgOption, levelOption, widthOption, mask_render, debugMode]
@@ -75,7 +75,7 @@ def run_sim(camera, pressed_keys, simResmultiplier):
 
         # add the bounding box
         #box[:, :1] = True
-        #box[:, -1:] = True
+        box[:, -1:] = True
         #box[:1, :] = True
         #box[-1:, :] = True
 
@@ -91,18 +91,19 @@ def run_sim(camera, pressed_keys, simResmultiplier):
         sim.udpate(debugMode.current, fps.last_dt, flowwidth,
             smokeStreams.current, smokeAmount.current)
         output = sim.render(debugMode.current, camera, render_mask=(mask_render.current == 1))
+        output_shape = np.shape(output)
 
         # add the GUI
         text_color = (0, 0, 255) if bgOption.current == 0 else (255, 255, 0)
         if debugMode.current == 0 and display_counter <= 0:
-            cv2.putText(output, 'd=Debug Mode', (30,460), cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color)
+            cv2.putText(output, 'd=Debug Mode', (30,output_shape[0] - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color)
         else:
             pos = np.array((30,30))
             for option in options:
                 cv2.putText(output, str(option), tuple(pos), cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color)
                 pos = pos + [0,20]
-            cv2.putText(output, str(fps), (520,460), cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color)
-            cv2.putText(output, 'q=Quit, r=Reset', (30,460), cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color)
+            cv2.putText(output, str(fps), (output_shape[1] - 80,output_shape[0] - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color)
+            cv2.putText(output, 'q=Quit, r=Reset', (30,output_shape[0] - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color)
 
         # render the output
         cv2.imshow('window', output)
@@ -127,7 +128,7 @@ def run_sim(camera, pressed_keys, simResmultiplier):
 camera = Camera(no_cam_mode=True, flip=flip)
 
 if(camera.active):
-    run_sim(camera, pressed_keys, simResmultiplier=1.0)
+    run_sim(camera, pressed_keys, simResmultiplier=simResmultiplier)
 else:
     print("ERROR: Couldn't capture frame. Is Webcam available/enabled?")
 

@@ -6,15 +6,24 @@ import cv2
 class Camera:
 
     def _resize_frame(self, frame):
-        if self._flip:
-            return cv2.resize(cv2.flip(frame, 1), self._size)
+        frame_shape = np.shape(frame)
+        frame_crop_height = int(frame_shape[1] / self._ratio)
+        crop_offset = (frame_shape[0] - frame_crop_height) // 2
+        if crop_offset > 0:
+            cropped_frame = frame[crop_offset:-crop_offset, :, :]
         else:
-            return cv2.resize(frame, self._size)
+            cropped_frame = frame
 
-    def __init__(self, size=(640,480), no_cam_mode=False, flip=True):
+        if self._flip:
+            return cv2.resize(cv2.flip(cropped_frame, 1), self._size)
+        else:
+            return cv2.resize(cropped_frame, self._size)
+
+    def __init__(self, size=(640,360), no_cam_mode=False, flip=True):
         self._no_cam_mode = no_cam_mode
-        self._cap = cv2.VideoCapture(0)
+        self._cap = cv2.VideoCapture(1)
         self._size = size
+        self._ratio = size[0] / size[1]
         self._flip = flip
         self._fgbg = cv2.createBackgroundSubtractorKNN()
         self._mask = np.zeros(self._size[::-1], dtype=np.uint8)
@@ -51,7 +60,7 @@ class Camera:
 
         if bg_option == 2:
             # use opencv image background subtraction
-            self._mask[:] = self._fgbg.apply(self._input_frame, learningRate=0.001)
+            self._mask[:] = self._fgbg.apply(self._input_frame, learningRate=0.003)
         else:
             # generate the mask, invert if necessary
             self._mask[:] = 0

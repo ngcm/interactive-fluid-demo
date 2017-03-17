@@ -106,7 +106,7 @@ void C_pressure_solve(
     double * temp = 0;
 
     // make sure this is a multiple of 2 steps
-    for(k = 0; k < 20; ++k) { 
+    for(k = 0; k < 20; ++k) {
         #pragma omp parallel for schedule(dynamic, 16) private(y, idx)
         for(x = 0; x < Nx; ++x) {
             pressure_buffer[x * Ny] = 0;
@@ -243,10 +243,11 @@ void C_step(
         ) {
 
     int i, j, x, idx;
-    int loops = 3;
+    int loops = 1;
 
     double dt = dt0 / loops;
     for(i = 0; i < loops; ++i) {
+        /*
         C_advect_velocity(vtmp2, v, bound, advect_indexes, advect_lerps, Nx, Ny, dx, dy, dt);
 
         C_advect_velocity(vtmp, vtmp2, bound, advect_indexes, advect_lerps, Nx, Ny, dx, dy, -dt);
@@ -255,8 +256,9 @@ void C_step(
         for(x = 0; x < Nx * Ny * 2; ++x) {
             vtmp2[x] = 1.3 * v[x] - 0.3 * vtmp[x];
         }
+        */
 
-        C_advect_velocity(vtmp, vtmp2, bound, advect_indexes, advect_lerps, Nx, Ny, dx, dy, dt);
+        C_advect_velocity(vtmp, v, bound, advect_indexes, advect_lerps, Nx, Ny, dx, dy, dt);
 
         C_divergence(div, vtmp, bound, Nx, Ny, dx, dy);
         C_pressure_solve(p, vtmp2, div, bound, Nx, Ny, dx, dy);
