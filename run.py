@@ -36,7 +36,7 @@ def run_sim(camera, pressed_keys, simResmultiplier):
 
     simRes = Options.Range('Sim Res', ['9','0'], [0.1, 2.0], 0.1, simResmultiplier)
     speedOption = Options.Range('Inflow Speed', ['-','='], [0.02, 1], 0.02, 0.2)
-    smokeStreams = Options.Range('Smoke Streams', ['[',']'], [1, 50], 1, 16)
+    smokeStreams = Options.Range('Smoke Streams', ['[',']'], [1, 50], 1, 27)
     smokeAmount = Options.Range('Smoke Amount', ['\'','#'], [1, 10], 1, 10)
     bgOption = Options.Cycle('BG', 'b', ['white', 'black', 'subtract', 'hue'], 2)
     levelOption = Options.Range('Mask Threshold', ['1','2'], [0, 1], 0.03, 0.4)
@@ -75,16 +75,16 @@ def run_sim(camera, pressed_keys, simResmultiplier):
 
         # add the bounding box
         #box[:, :1] = True
-        box[:, -1:] = True
-        #box[:1, :] = True
-        #box[-1:, :] = True
+        #box[:, -1:] = True
+        box[:1, :] = True
+        box[-1:, :] = True
 
         # apply input velocity
         flowwidth = 1 + int(fps.last_dt * speedOption.current / sim._dx[0])
         #sim.set_velocity(np.s_[0, :, :1], speedOption.current)
         #sim.set_velocity(np.s_[0, :, -1:], speedOption.current)
-        sim.set_velocity(np.s_[0, :flowwidth, :], speedOption.current)
-        sim.set_velocity(np.s_[0, -flowwidth:, :], speedOption.current)
+        sim.set_velocity(np.s_[1, :, :flowwidth], speedOption.current)
+        sim.set_velocity(np.s_[1, :, -flowwidth:], speedOption.current)
         sim.set_boundary(box)
 
         # update and render the sim
@@ -102,7 +102,7 @@ def run_sim(camera, pressed_keys, simResmultiplier):
             for option in options:
                 cv2.putText(output, str(option), tuple(pos), cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color)
                 pos = pos + [0,20]
-            cv2.putText(output, str(fps), (output_shape[1] - 80,output_shape[0] - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color)
+            cv2.putText(output, str(fps), (output_shape[1] - 100,output_shape[0] - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color)
             cv2.putText(output, 'q=Quit, r=Reset', (30,output_shape[0] - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, text_color)
 
         # render the output

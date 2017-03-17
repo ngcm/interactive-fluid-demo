@@ -106,7 +106,7 @@ void C_pressure_solve(
     double * temp = 0;
 
     // make sure this is a multiple of 2 steps
-    for(k = 0; k < 20; ++k) {
+    for(k = 0; k < 15; ++k) {
         #pragma omp parallel for schedule(dynamic, 16) private(y, idx)
         for(x = 0; x < Nx; ++x) {
             pressure_buffer[x * Ny] = 0;

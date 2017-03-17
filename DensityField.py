@@ -19,17 +19,17 @@ class DensityField:
 
     @jit
     def add_density(self, flow_amount, perp_number, perp_amount):
-        step = self._shape[1] // (perp_number + 1)
-        ys = range(step, self._shape[1], step)
+        step = self._shape[0] // (perp_number + 1)
+        xs = range(step, self._shape[0], step)
 
-        rx = np.s_[:flow_amount]
+        ry = np.s_[:flow_amount]
 
-        self._d[:, rx, :] *= 0.9
+        self._d[:, :, ry] *= 0.9
         self._d[:] *= 0.999
 
-        dy = step * perp_amount // 20
-        for i, y in enumerate(ys):
-            ry = np.s_[y - dy : y + dy + 1]
+        dx = step * perp_amount // 20
+        for i, x in enumerate(xs):
+            rx = np.s_[x - dx : x + dx + 1]
             self._d[i % self._num_colours, rx, ry] = 1
 
     @jit
