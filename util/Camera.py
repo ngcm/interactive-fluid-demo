@@ -21,7 +21,7 @@ class Camera:
 
     def __init__(self, size=(640,360), no_cam_mode=False, flip=True):
         self._no_cam_mode = no_cam_mode
-        self._cap = cv2.VideoCapture(1)
+        self._cap = cv2.VideoCapture(0)
         self._size = size
         self._ratio = size[0] / size[1]
         self._flip = flip
