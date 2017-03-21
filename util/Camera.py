@@ -2,10 +2,11 @@ from numba import jit
 import numpy as np
 import cv2
 
+random = np.array(np.power(np.random.rand(16, 8, 3), 3) * 255, dtype=np.uint8)
 
 class Camera:
 
-    def _resize_frame(self, frame):
+    def _resize_frame(self, frame, flip=0):
         frame_shape = np.shape(frame)
         frame_crop_height = int(frame_shape[1] / self._ratio)
         crop_offset = (frame_shape[0] - frame_crop_height) // 2
@@ -14,24 +15,28 @@ class Camera:
         else:
             cropped_frame = frame
 
-        if self._flip:
+        if flip == 1: # horizontal
             return cv2.resize(cv2.flip(cropped_frame, 1), self._size)
+        elif flip == 2: # verticle
+            return cv2.resize(cv2.flip(cropped_frame, 0), self._size)
+        elif flip == 3: # both
+            return cv2.resize(cv2.flip(cropped_frame, -1), self._size)
         else:
             return cv2.resize(cropped_frame, self._size)
 
-    def __init__(self, size=(640,360), no_cam_mode=False, flip=True):
-        self._no_cam_mode = no_cam_mode
-        self._cap = cv2.VideoCapture(0)
+    def __init__(self, size=(640,360), camera_index=0, no_cam_allowed=False):
+        self._no_cam_allowed = no_cam_allowed
+        self._cap = cv2.VideoCapture(camera_index)
         self._size = size
         self._ratio = size[0] / size[1]
-        self._flip = flip
         self._fgbg = cv2.createBackgroundSubtractorKNN()
         self._mask = np.zeros(self._size[::-1], dtype=np.uint8)
         self._input_frame = np.zeros((*self._size[::-1], 3), dtype=np.uint8)
+        self._hsv_field = np.zeros((*self._size[::-1], 3), dtype=np.uint8)
 
         if not self._cap.isOpened():
 
-            random = np.array(np.power(np.random.rand(16, 8, 3), 3) * 255, dtype=np.uint8)
+            # random = np.array(np.power(np.random.rand(16, 8, 3), 3) * 255, dtype=np.uint8)
             self._input_frame = self._resize_frame(random)
 
             ''' HSV test image
@@ -48,33 +53,31 @@ class Camera:
         self._cap.release()
 
     @jit
-    def update(self, bg_option, mask_level, mask_width):
+    def update(self, bg_option, mirror_screen, mask_level, mask_width):
         if self._cap.isOpened():
-            # update frame if cam is active
+            # update frame if webcam is active
             ret, frame = self._cap.read()
             if ret:
-                self._input_frame = self._resize_frame(frame)
-        elif self._no_cam_mode:
-            # else scroll
-            None#self._input_frame = self._input_frame.take(range(-1, self._size[1] - 1), axis=0, mode='wrap')
+                self._input_frame = self._resize_frame(frame, mirror_screen)
+        else:
+            # else use a random image
+            self._input_frame = self._resize_frame(random, mirror_screen)
 
-        if bg_option == 2:
-            # use opencv image background subtraction
+        if bg_option == 3: # background subtraction
             self._mask[:] = self._fgbg.apply(self._input_frame, learningRate=0.003)
         else:
-            # generate the mask, invert if necessary
             self._mask[:] = 0
-            hsv = cv2.cvtColor(self._input_frame, cv2.COLOR_BGR2HSV)
-            if bg_option == 3:
-                x = np.abs(np.array(hsv[:,:,0], np.float) / 180 - mask_level)
+            self._hsv_field[:] = cv2.cvtColor(self._input_frame, cv2.COLOR_BGR2HSV)
+            if bg_option == 2: # hue
+                x = np.abs(np.array(self._hsv_field[:,:,0], np.float) / 180 - mask_level)
                 self._mask[x > mask_width] = 255
-            elif bg_option == 0:
-                x = np.array(hsv[:,:,1], np.float) / 255
+            elif bg_option == 0: # white
+                x = np.array(self._hsv_field[:,:,1], np.float) / 255
                 x = 1 / mask_width * x * x + mask_level
-                y = np.array(hsv[:,:,2], np.float) / 255
+                y = np.array(self._hsv_field[:,:,2], np.float) / 255
                 self._mask[y <= x] = 255
-            else:
-                self._mask[hsv[:,:,2] > (255 * (1 - mask_level))] = 255
+            else: # black
+                self._mask[self._hsv_field[:,:,2] > (255 * (1 - mask_level))] = 255
 
     def reset(self):
         if not self._cap.isOpened():
@@ -83,7 +86,7 @@ class Camera:
 
     @property
     def active(self):
-        return self._cap.isOpened() or self._no_cam_mode
+        return self._cap.isOpened() or self._no_cam_allowed
 
     @property
     def shape(self):

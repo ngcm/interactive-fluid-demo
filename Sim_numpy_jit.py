@@ -98,23 +98,27 @@ class Sim(SimBase):
 
     @jit
     def step(self, dt, density_arrays):
+        if False:
+            # BFECC
+            self._vtmp2[:], self._xi, self._s = advect_velocity(self._vtmp2, self._v,
+                self._b, self._indexArray, self._dx, dt)
+            self._vtmp[:], _, _ = advect_velocity(self._vtmp, self._vtmp2,
+                self._b, self._indexArray, self._dx, -dt)
+            self._vtmp2 = 1.3 * self._v - 0.3 * self._vtmp
 
-        self._vtmp[:], self._xi, self._s = advect_velocity(self._vtmp, self._v,
-            self._b, self._indexArray, self._dx, dt)
+            # Corrected advection
+            self._vtmp[:], self._xi, self._s = advect_velocity(self._vtmp, self._vtmp2,
+                self._b, self._indexArray, self._dx, dt)
+        else:
+            self._vtmp[:], self._xi, self._s = advect_velocity(self._vtmp, self._v,
+                self._b, self._indexArray, self._dx, dt)
 
-        '''
-        self._vtmp2[:], _, _ = advect_velocity(self._vtmp2, self._v,
-            self._b, self._indexArray, self._dx, dt)
-        self._vtmp[:], _, _ = advect_velocity(self._vtmp, self._vtmp2,
-            self._b, self._indexArray, self._dx, -dt)
-        self._vtmp2 = 1.5 * self._v - 0.5 * self._vtmp
-        self._vtmp[:], self._xi, self._s = advect_velocity(self._vtmp, self._vtmp2,
-            self._b, self._indexArray, self._dx, dt)
-        '''
-
+        # remove divergence
         self._div[:] = divergence(self._div, self._vtmp, self._notb, self._dx)
         self._p[:] = pressure_solve(self._p, self._div, self._b, self._notb, self._dx)
         self._v[:] = sub_gradient(self._v, self._vtmp, self._p, self._dx)
+
+        # enforce slip at boundary
         self._v[:] = enforce_slip(self._v, self._notb, self._b)
 
         for d in density_arrays:

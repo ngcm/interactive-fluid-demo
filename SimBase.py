@@ -5,16 +5,21 @@ import cv2
 from DensityField import DensityField
 import util.colour_util as colour_util
 
+# Base class for the fluid sims. Handles the update and render calls, as well as
+# encapsulating a bunch of arrays
 class SimBase:
     def __init__(self, cam_shape, res_multiplier):
         self._cam_shape = cam_shape
         self._shape = (int(cam_shape[0] * res_multiplier), int(cam_shape[1] * res_multiplier))
+        self._mode = 0
         self._v = np.zeros((2, *self._shape)) # velocity field
         self._b = np.zeros(self._shape, dtype=bool) # boundary
         self._notb = np.logical_not(self._b) # inverse boundary
         self._dx = np.array([4/3,1]) / np.array(self._shape) # discretisation
 
         self._d = DensityField(self._shape) # density fields
+        self._flowwidth = 0
+        self._flowdirection = 0
 
         # HSV velocity render
         self._hsv_field = np.zeros((3, *self._shape), dtype=np.uint8)
@@ -31,14 +36,59 @@ class SimBase:
     def shape(self):
         return self._shape
 
+    @property
+    def mode(self):
+        return self._mode
+
+    @mode.setter
+    def mode(self, value):
+        self._mode = value
+
     @jit
-    def set_boundary(self, cell_ocupation):
-        self._b = cell_ocupation
+    def set_boundary(self, cell_ocupation, flow_direction):
+        # input boundary
+        self._b[:] = cell_ocupation
+
+        # add boundary walls parrallel to flow
+        if flow_direction == 0:
+            self._b[:, :1] = True
+            self._b[:, -1:] = True
+        elif flow_direction == 1:
+            self._b[:1, :] = True
+            self._b[-1:, :] = True
+        elif flow_direction == 2:
+            self._b[:, :1] = True
+            self._b[:, -1:] = True
+        elif flow_direction == 3:
+            self._b[:1, :] = True
+            self._b[-1:, :] = True
+
+        # cache boundary inverse
         self._notb = np.logical_not(self._b)
 
     @jit
-    def set_velocity(self, cells_to_set, cell_velocity):
-        self._v[cells_to_set] = cell_velocity
+    def set_velocity(self, dt, flow_speed, flow_direction, num_streams, smoke_amount):
+        # As flow velocity increase, increase with of area to which it is applied.
+        # This means advection pulls from inside the flow.
+        flowwidth = 1 + int(dt * flow_speed / self._dx[0])
+
+        # Apply flow velocity to boundary layer perpendicular to flow
+        if flow_direction == 0:
+            self._v[0, :flowwidth, :] = flow_speed
+            self._v[0, -flowwidth:, :] = flow_speed
+        elif flow_direction == 1:
+            self._v[1, :, :flowwidth] = flow_speed
+            self._v[1, :, -flowwidth:] = flow_speed
+        elif flow_direction == 2:
+            self._v[0, :flowwidth, :] = -flow_speed
+            self._v[0, -flowwidth:, :] = -flow_speed
+        elif flow_direction == 3:
+            self._v[1, :, :flowwidth] = -flow_speed
+            self._v[1, :, -flowwidth:] = -flow_speed
+
+        # if not debug mode, update the denisty fields
+        if self._mode == 0:
+            self._d.add_density(flowwidth, flow_direction, num_streams, smoke_amount)
 
     @jit
     def get_velocity(self):
@@ -51,24 +101,23 @@ class SimBase:
 
     @jit
     def get_velocity_field_as_HSV(self, power=0.5):
-        # assert np.shape(self._v)[0] == 2
+        # map velocity per grid point to hue (direction) and value (magnitude)
         self._hsv_field[0] = 180 * (np.arctan2(-self._v[0], -self._v[1]) / (2 * np.pi) + 0.5)
         self._hsv_field[2] = 255 * (self._v[0]**2 + self._v[1]**2) ** power
         return self._hsv_field
 
     @jit
-    def udpate(self, mode, dt, flowwidth, num_streams, smoke_amount):
+    def udpate(self, dt):
         # update and render the sim
-        if mode == 0:
-            self._d.add_density(flowwidth, num_streams, smoke_amount)
+        if self._mode == 0:
             self.step(dt, self._d.field)
         else:
             self.step(dt, [])
 
     @jit
-    def render(self, mode, camera, render_mask=False):
+    def render(self, camera, render_mask=False):
         # update and render the sim
-        if mode == 0:
+        if self._mode == 0:
             # combine the density fields with the input camera frame
             cv2.resize(self._d.get_render().T, camera.shape, dst=self._float3tmp)
             cv2.resize(self._d.get_alpha().T, camera.shape, dst=self._float1tmp)
