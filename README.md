@@ -2,6 +2,11 @@
 
 In the [NGCM-CDT](http://ngcm.soton.ac.uk/), we spend a lot of time programming complex simulations designed to be run on powerful computers. But you don't need a fast computer or a large, complicated program to model real physics. For example, this fluid physics simulation is only about 150 lines of Python code and can be run in real time on a modest single core computer.
 
+## Some Photos From The Recent [SOTSEF](https://www.facebook.com/sotsef) Event
+
+![wind tunnel mode](https://github.com/ngcm/interactive-fluid-demo/blob/master/virtualwindtunnel.jpeg)
+![interactive mode](https://github.com/ngcm/interactive-fluid-demo/blob/master/interactive.jpeg)
+
 ## Project Aim
 
 The aim of this project is to create an engaging, interactive demonstration of the kinds of simulations we develop as part of the [NGCM-CDT](http://ngcm.soton.ac.uk/). The basic concept is to combine real-time simulations with live video so that participants can interact with the simulation directly. It was inspired by the Lego(tm) Fluid Dynamics idea suggested at the 2017 NGCM outreach workshop. The ultimate goal is to create an easy to setup, maintain and develop demo that can be an ongoing part of the NGCM's contribution to the University of Southampton's public outreach (http://www.southampton.ac.uk/per/).
