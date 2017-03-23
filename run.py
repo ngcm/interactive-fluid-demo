@@ -103,14 +103,14 @@ def run_sim():
         # add the GUI
         text_color = (0, 0, 255) if bg_mode.current == 0 else (255, 255, 0)
         if debugMode.current == 0 and display_counter <= 0:
-            cv2.putText(output, 'd=Debug Mode', (30,output_shape[0] - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.3, text_color)
+            cv2.putText(output, 'd=Debug Mode', (30,output_shape[0] - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.4, text_color)
         else:
             pos = np.array((30,30))
             for option in options:
-                cv2.putText(output, str(option), tuple(pos), cv2.FONT_HERSHEY_SIMPLEX, 0.3, text_color)
+                cv2.putText(output, str(option), tuple(pos), cv2.FONT_HERSHEY_SIMPLEX, 0.4, text_color)
                 pos = pos + [0,20]
-            cv2.putText(output, str(fps), (output_shape[1] - 80,output_shape[0] - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.3, text_color)
-            cv2.putText(output, 'q=Quit, r=Reset', (30,output_shape[0] - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.3, text_color)
+            cv2.putText(output, str(fps), (output_shape[1] - 80,output_shape[0] - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.4, text_color)
+            cv2.putText(output, 'q=Quit, r=Reset', (30,output_shape[0] - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.4, text_color)
 
         # render the output
         cv2.imshow('window', output)
@@ -119,7 +119,7 @@ def run_sim():
             # update the options (poll for input, cycle)
             for option in options:
                 if option.update(key, fps.last_dt):
-                    display_counter = 3
+                    display_counter = 5
 
             # poll for quit, reset
             if key == 'q':

@@ -4,6 +4,11 @@
 #include <stdio.h>
 
 
+const int num_loops = 5;
+const int accuracy_mode = 1;
+const int pressure_solve_steps = 20;
+
+
 double advect_sample(const double const * v, int Ny, double s, double t) {
     return (1 - s) * ((1 - t) * v[0] + t * v[1])
         + s * ((1 - t) * v[Ny] + t * v[Ny + 1]);
@@ -106,7 +111,7 @@ void C_pressure_solve(
     double * temp = 0;
 
     // make sure this is a multiple of 2 steps
-    for(k = 0; k < 20; ++k) {
+    for(k = 0; k < pressure_solve_steps; ++k) {
         #pragma omp parallel for schedule(dynamic, 16) private(y, idx)
         for(x = 0; x < Nx; ++x) {
             pressure_buffer[x * Ny] = 0;
@@ -243,22 +248,27 @@ void C_step(
         ) {
 
     int i, j, x, idx;
-    int loops = 5;
 
-    double dt = dt0 / loops;
-    for(i = 0; i < loops; ++i) {
-        // BFECC
-        C_advect_velocity(vtmp2, v, bound, advect_indexes, advect_lerps, Nx, Ny, dx, dy, dt);
-
-        C_advect_velocity(vtmp, vtmp2, bound, advect_indexes, advect_lerps, Nx, Ny, dx, dy, -dt);
-
-        #pragma omp parallel for schedule(dynamic, 16)
-        for(x = 0; x < Nx * Ny * 2; ++x) {
-            vtmp2[x] = 1.3 * v[x] - 0.3 * vtmp[x];
+    double dt = dt0 / num_loops;
+    for(i = 0; i < num_loops; ++i) {
+        if(accuracy_mode == 1) {
+            // BFECC
+            C_advect_velocity(vtmp2, v, bound, advect_indexes, advect_lerps, Nx, Ny, dx, dy, dt);
+    
+            C_advect_velocity(vtmp, vtmp2, bound, advect_indexes, advect_lerps, Nx, Ny, dx, dy, -dt);
+    
+            #pragma omp parallel for schedule(dynamic, 16)
+            for(x = 0; x < Nx * Ny * 2; ++x) {
+                vtmp2[x] = 1.3 * v[x] - 0.3 * vtmp[x];
+            }
+    
+            // Corrected advection
+            C_advect_velocity(vtmp, vtmp2, bound, advect_indexes, advect_lerps, Nx, Ny, dx, dy, dt);
+        } else {
+                
+            // Standard advection
+            C_advect_velocity(vtmp, v, bound, advect_indexes, advect_lerps, Nx, Ny, dx, dy, dt);
         }
-
-        // Corrected advection
-        C_advect_velocity(vtmp, vtmp2, bound, advect_indexes, advect_lerps, Nx, Ny, dx, dy, dt);
 
         // remove divergence
         C_divergence(div, vtmp, bound, Nx, Ny, dx, dy);
