@@ -82,9 +82,9 @@ def run_sim():
             sim.mode = debugMode.current
 
         # if flow direction changes, reset, else things get messy
-        if flow_direction.get_has_changed(reset_change_flag=True):
-            sim.reset()
-            camera.reset()
+        # if flow_direction.get_has_changed(reset_change_flag=True):
+            # sim.reset()
+            # camera.reset()
 
         # update input image
         camera.update(bg_mode.current, mirror_screen.current,
