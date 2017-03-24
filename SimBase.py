@@ -45,23 +45,32 @@ class SimBase:
         self._mode = value
 
     @jit
-    def set_boundary(self, cell_ocupation, flow_direction):
+    def set_boundary(self, cell_ocupation, boundary_velocity, flow_direction):
         # input boundary
         self._b[:] = cell_ocupation
+        self._v[:, self._b] = boundary_velocity[:, self._b]
 
         # add boundary walls parrallel to flow
         if flow_direction == 0:
             self._b[:, :1] = True
             self._b[:, -1:] = True
+            self._v[:, :, :1] = 0
+            self._v[:, :, -1:] = 0
         elif flow_direction == 1:
             self._b[:1, :] = True
             self._b[-1:, :] = True
+            self._v[:, :1, :] = 0
+            self._v[:, -1:, :] = 0
         elif flow_direction == 2:
             self._b[:, :1] = True
             self._b[:, -1:] = True
+            self._v[:, :, :1] = 0
+            self._v[:, :, -1:] = 0
         elif flow_direction == 3:
             self._b[:1, :] = True
             self._b[-1:, :] = True
+            self._v[:, :1, :] = 0
+            self._v[:, -1:, :] = 0
 
         # cache boundary inverse
         self._notb = np.logical_not(self._b)
@@ -76,13 +85,21 @@ class SimBase:
         if flow_direction == 0:
             self._v[0, :flowwidth, :] = flow_speed
             self._v[0, -flowwidth:, :] = flow_speed
+            self._v[1, :flowwidth, :] = 0
+            self._v[1, -flowwidth:, :] = 0
         elif flow_direction == 1:
+            self._v[0, :, :flowwidth] = 0
+            self._v[0, :, -flowwidth:] = 0
             self._v[1, :, :flowwidth] = flow_speed
             self._v[1, :, -flowwidth:] = flow_speed
         elif flow_direction == 2:
             self._v[0, :flowwidth, :] = -flow_speed
             self._v[0, -flowwidth:, :] = -flow_speed
+            self._v[1, :flowwidth, :] = 0
+            self._v[1, -flowwidth:, :] = 0
         elif flow_direction == 3:
+            self._v[0, :, :flowwidth] = 0
+            self._v[0, :, -flowwidth:] = 0
             self._v[1, :, :flowwidth] = -flow_speed
             self._v[1, :, -flowwidth:] = -flow_speed
 
@@ -103,6 +120,7 @@ class SimBase:
     def get_velocity_field_as_HSV(self, power=0.5):
         # map velocity per grid point to hue (direction) and value (magnitude)
         self._hsv_field[0] = 180 * (np.arctan2(-self._v[0], -self._v[1]) / (2 * np.pi) + 0.5)
+        # self._hsv_field[1] = 255
         self._hsv_field[2] = 255 * (self._v[0]**2 + self._v[1]**2) ** power
         return self._hsv_field
 
@@ -115,7 +133,7 @@ class SimBase:
             self.step(dt, [])
 
     @jit
-    def render(self, camera, render_mask=False):
+    def render(self, camera, render_mask_velocity=False, render_mask=False):
         # update and render the sim
         if self._mode == 0:
             # combine the density fields with the input camera frame
@@ -128,18 +146,21 @@ class SimBase:
                 self._output[:camera.shape[1]//4,:camera.shape[0]//4] = \
                     cv2.resize(camera.mask, (camera.shape[0]//4, camera.shape[1]//4))[:,:,np.newaxis]
         else:
-            # render the pressure solution as range from blue (negative) to red (positive)
-            self._simshapetmp[:] = self.get_pressure_as_rgb().T * 512
-            cv2.resize(self._simshapetmp, camera.shape, dst=self._camshapetmp)
-            cv2.blur(self._camshapetmp, (20, 20), dst=self._camshapetmp)
-            # add the the cam mask
-            cv2.add(cv2.cvtColor(camera.mask // 8, cv2.COLOR_GRAY2BGR), self._camshapetmp, dst=self._camshapetmp)
 
             # render the velocity field
             cv2.cvtColor(self.get_velocity_field_as_HSV(0.25).T, cv2.COLOR_HSV2BGR, dst=self._simshapetmp) # should be 0.5 (i.e. square root), but this shows the lower velocities better
             cv2.resize(self._simshapetmp, camera.shape, dst=self._output)
 
-            # combine using the mask to select between the two renders
-            cv2.add(self._output, self._camshapetmp, dst=self._output, mask=camera.mask)
+            if render_mask:
+                # render the pressure solution as range from blue (negative) to red (positive)
+                # self._simshapetmp[:] = self.get_pressure_as_rgb().T * 512
+                # cv2.resize(self._simshapetmp, camera.shape, dst=self._camshapetmp)
+                # cv2.blur(self._camshapetmp, (20, 20), dst=self._camshapetmp)
+                self._camshapetmp[:] = 0
+                # add the the cam mask
+                cv2.add(cv2.cvtColor(camera.mask // 4, cv2.COLOR_GRAY2BGR), self._camshapetmp, dst=self._camshapetmp)
+
+                # combine using the mask to select between the two renders
+                cv2.add(self._output, self._camshapetmp, dst=self._output, mask=camera.mask)
 
         return self._output

@@ -4,10 +4,9 @@
 #include <stdio.h>
 
 
-const int num_loops = 5;
+const int num_loops = 3;
 const int accuracy_mode = 1;
-const int pressure_solve_steps = 20;
-
+const int pressure_solve_steps = 30;
 
 double advect_sample(const double const * v, int Ny, double s, double t) {
     return (1 - s) * ((1 - t) * v[0] + t * v[1])
@@ -86,7 +85,7 @@ void C_apply_advection(double * d, const double * const d0,
                 d[0 + idx] = advect_sample(d0 + iidx, Ny, advect_lerps[idx],
                     advect_lerps[vyidx + idx]);
             } else {
-                d[0 + idx] = 0;
+                d[0 + idx] *= 0.9;
             }
 
         }
@@ -107,8 +106,19 @@ void C_pressure_solve(
     //memset(pressure_buffer, 0, Nx * Ny * sizeof(double));
 
     int x, y, k, idx;
-
     double * temp = 0;
+
+    // shouldn't have any pressure inside solids
+    #pragma omp parallel for schedule(dynamic, 16) private(y, idx)
+    for(x = 0; x < Nx * Ny; ++x) {
+        pressure[x] *= bound[x] ? 0.9 : 1.0;
+    }
+    /*
+    #pragma omp parallel for schedule(dynamic, 16) private(y, idx)
+    for(x = 0; x < Nx * Ny; ++x) {
+        pressure[x] = 0.0;
+    }
+    */
 
     // make sure this is a multiple of 2 steps
     for(k = 0; k < pressure_solve_steps; ++k) {
@@ -171,6 +181,7 @@ void C_sub_gradient(
     double * v,
     const double * const v0,
     const double * const p,
+    const unsigned char * bound,
     const int Nx,
     const int Ny,
     const double dx,
@@ -183,8 +194,8 @@ void C_sub_gradient(
     for(x = 1; x < Nx - 1; ++x) {
         for(y = 1; y < Ny - 1; ++y) {
             idx = y + x * Ny;
-            v[idx] = v0[idx] - 1 / (2 * dx) * (p[idx + Ny] - p[idx - Ny]);
-            v[vyidx + idx] = v0[vyidx + idx] - 1 / (2 * dy) * (p[idx + 1] - p[idx - 1]);
+            v[idx] = bound[idx] ? v0[idx] : v0[idx] - 1 / (2 * dx) * (p[idx + Ny] - p[idx - Ny]);
+            v[vyidx + idx] = bound[idx] ? v0[vyidx + idx] : v0[vyidx + idx] - 1 / (2 * dy) * (p[idx + 1] - p[idx - 1]);
         }
     }
 }
@@ -198,6 +209,7 @@ void C_enforce_slip(
     int x, y, idx;
     int vyidx = Nx * Ny;
 
+    /*
     #pragma omp parallel for schedule(dynamic, 16) private(y, idx)
     for(x = 1; x < Nx - 1; ++x) {
         for(y = 1; y < Ny - 1; ++y) {
@@ -209,19 +221,19 @@ void C_enforce_slip(
             v[vyidx + idx] = bound[idx] ? 0.0 : v[vyidx + idx];
         }
     }
-
+    */
 
     #pragma omp parallel for schedule(dynamic, 16) private(y, idx)
     for(x = 1; x < Nx - 1; ++x) {
         for(y = 1; y < Ny - 1; ++y) {
             idx = y + x * Ny;
             // take x velocity from vertical boundaries
-            v[idx] = bound[idx] ? 0.0 :
+            v[idx] = bound[idx] ? v[idx] :
                 bound[idx + Ny] ? v[idx + Ny] :
                 bound[idx - Ny] ? v[idx - Ny] : v[idx];
 
             // take y velocity from horizontal boundaries
-            v[vyidx + idx] = bound[idx] ? 0.0 :
+            v[vyidx + idx] = bound[idx] ? v[vyidx + idx] :
                 bound[idx + 1] ? v[vyidx + idx + 1] :
                 bound[idx - 1] ? v[vyidx + idx - 1] : v[vyidx + idx];
         }
@@ -254,18 +266,18 @@ void C_step(
         if(accuracy_mode == 1) {
             // BFECC
             C_advect_velocity(vtmp2, v, bound, advect_indexes, advect_lerps, Nx, Ny, dx, dy, dt);
-    
+
             C_advect_velocity(vtmp, vtmp2, bound, advect_indexes, advect_lerps, Nx, Ny, dx, dy, -dt);
-    
+
             #pragma omp parallel for schedule(dynamic, 16)
             for(x = 0; x < Nx * Ny * 2; ++x) {
-                vtmp2[x] = 1.3 * v[x] - 0.3 * vtmp[x];
+                vtmp2[x] = 1.5 * v[x] - 0.5 * vtmp[x];
             }
-    
+
             // Corrected advection
             C_advect_velocity(vtmp, vtmp2, bound, advect_indexes, advect_lerps, Nx, Ny, dx, dy, dt);
         } else {
-                
+
             // Standard advection
             C_advect_velocity(vtmp, v, bound, advect_indexes, advect_lerps, Nx, Ny, dx, dy, dt);
         }
@@ -273,7 +285,7 @@ void C_step(
         // remove divergence
         C_divergence(div, vtmp, bound, Nx, Ny, dx, dy);
         C_pressure_solve(p, vtmp2, div, bound, Nx, Ny, dx, dy);
-        C_sub_gradient(v, vtmp, p, Nx, Ny, dx, dy);
+        C_sub_gradient(v, vtmp, p, bound, Nx, Ny, dx, dy);
 
         // enforce slip at boundary
         C_enforce_slip(v, bound, Nx, Ny);

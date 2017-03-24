@@ -32,6 +32,7 @@ render_mask = Options.Cycle('Render Mask', 'm', ['false', 'true'], configuration
 bg_mode = Options.Cycle('BG', 'b', ['white', 'black', 'hue', 'bg subtract'], configuration.bg_mode)
 mask_level = Options.Range('Mask Threshold', ['1','2'], [0, 1], 0.03, configuration.mask_level)
 mask_width = Options.Range('Mask Width', ['3','4'], [0, 0.5], 0.01, configuration.mask_width)
+optical_flow = Options.Cycle('Optical Flow', 'o', ['false', 'true'], configuration.optical_flow)
 
 sim_res_multiplier = Options.Range('Sim Res', ['9','0'], [0.1, 2.0], 0.1, configuration.sim_res_multiplier)
 flow_speed = Options.Range('Flow Speed', ['-','='], [0.02, 1], 0.02, configuration.flow_speed)
@@ -43,7 +44,7 @@ debugMode = Options.Cycle('Mode', 'd', ['Normal', 'Debug'], 0)
 
 # add to a list to update and display
 options = [fullscreen, mirror_screen, render_mask,
-    bg_mode, mask_level, mask_width,
+    bg_mode, mask_level, mask_width, optical_flow,
     sim_res_multiplier, flow_speed, flow_direction, num_smoke_streams, smoke_percentage,
     debugMode]
 
@@ -67,6 +68,8 @@ def run_sim():
         # fluid sim resolution. Update when option changes.
         if sim_res_multiplier.get_has_changed(reset_change_flag=True):
             sim = configuration.Sim(camera.shape, sim_res_multiplier.current, 0, 0)
+            sim.mode = debugMode.current
+            flow = np.zeros((sim.shape[1], sim.shape[0], 2))
 
         # Always True on first iteration. Update fullscreen if option changed
         if fullscreen.get_has_changed(reset_change_flag=True):
@@ -87,17 +90,30 @@ def run_sim():
         camera.update(bg_mode.current, mirror_screen.current,
             mask_level.current, mask_width.current)
 
+
+        if optical_flow.current == 1:
+            flow[:] = cv2.calcOpticalFlowFarneback(cv2.resize(camera.last_grey, sim.shape),
+                                                cv2.resize(camera.current_grey, sim.shape),
+                                                float(0),
+                                                pyr_scale=0.5, levels=3, winsize=15, iterations=3,
+                                                poly_n=5, poly_sigma=1.0, flags=0)
+
+            scale = np.sqrt(sim._dx[0] * sim._dx[1]) / fps.last_dt
+            flow *= scale
+        else:
+            flow[:] = 0
+
         sim.set_velocity(fps.last_dt, flow_speed.current,
             flow_direction.current, num_smoke_streams.current,
             smoke_percentage.current)
 
         # copy the webcam generated mask into the boundary
         boundary = np.array(cv2.resize(camera.mask, sim.shape).T, dtype=bool)
-        sim.set_boundary(boundary, flow_direction.current)
+        sim.set_boundary(boundary, flow.T, flow_direction.current)
 
         # update and render the sim
         sim.udpate(fps.last_dt)
-        output = sim.render(camera, render_mask=(render_mask.current == 1))
+        output = sim.render(camera, render_mask_velocity=(optical_flow.current==1), render_mask=(render_mask.current == 1))
         output_shape = np.shape(output)
 
         # add the GUI

@@ -39,3 +39,9 @@ class Sim(SimBase):
             rgb[0, self._p < 0] = self._p[self._p < 0] / pmax
 
         return rgb
+
+    @jit
+    def reset(self):
+        self._v[:] = 0
+        self._d.reset()
+        self._p[:] = 0
