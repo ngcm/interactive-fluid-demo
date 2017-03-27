@@ -16,57 +16,79 @@ As a proof-of-concept, I have combined a simple real-time 2D fluid dynamics simu
 ## Click for Video
 [![FluidDemo](https://github.com/ngcm/interactive-fluid-demo/blob/master/FluidDemo.png)](https://raw.githubusercontent.com/ngcm/interactive-fluid-demo/master/FluidDemo.webm)
 
-Possible improvements;
-* Improve the subject/background separation, perhaps using *OpenCV*'s image processing (chromakey?)
+## Dependencies
 
-## How to run
-Run by calling `python run.py`. To use the Cython multithreaded version call `make` in the `csim` folder then in the main folder call `python run.py C`. Follow the onscreen prompt for various ways to configure the sim (make sure to hold the key down for a bit, the key polling isn't good).
+### OpenCV
 
+**OpenCV** is an open source computer vision library with a **Python** interface. When this project started, **OpenCV** was just a way to get web-cam data into **Python**. However, as the project has progressed, it has made greater and greater use of the this library's functions; to resize and recolour images, to identify foreground object in the webcam image with *Background Subtraction*, and to measure objects velocities with *Optical Flow*.
 
-## VirtualBox
+So, now the project is irrecoverably tied to **OpenCV**, and this is a problem because it remains an awkward library to install.
 
-I currently develop inside a VM. If doing the same, make sure to install the [VirtualBox 5.1.14 Oracle VM VirtualBox Extension Pack](https://www.virtualbox.org/wiki/Downloads) to get access to the host webcam from the guest VM. Then you should be able to enable the webcam from the `Devices` menu.
+### Pynput
 
-## OpenCV
+This project now uses **pynput** to capture keyboard key presses. **pynput** lets you register a callback to be triggered whenever a key is pressed, thus no key presses are missed and there is no pause in the update. This is big improvement over **OpenCV**s ****`waitkey()` function which polls for key presses during a mandatory pause (too short and you miss the key, too long the the frame rate is noticeably affected).
 
-*OpenCV* is an open source computer vision library. At present it's only used to get data from the webcam, superimpose some images, and render an output window. It is also a little tricky to install. An alternative may be warranted if this makes it difficult for people to collaborate. I'm sticking with it for now as I have not found a suitable alternative and the computer vision, image processing and GUI functions may prove useful to the project as it develops.
+### Numba
 
-### Installation via pre-built packages (Updated 03/03/2017)
+For a trivial to implement speed boost, this project uses the JIT complier package Numba.
 
-As *OpenCV* is quite picky, I found it best to use a *Python* environment (i.e. *Conda*).
+### Cython
 
-If you are on a Mac, then the conda-forge packages work fine (thanks [ryanpepper](https://github.com/ryanpepper)). Install *OpenCV* to an environment using the following;
+While the project is mostly written in Python, it uses Cython to interface with the simulations compiled shared object written in C.
+
+### Numpy
+
+Numpy is used extensively, whenever performaing array operations. Note also that OpenCV depends directly on Numpy.
+
+## Installation
+
+### Ubuntu 16.04 + Pre-built packages (Recommended)
+
+There are OpenCV Python packages in a third party channel, "menpo", that work well in Ubuntu (or Lubuntu, etc.) 16.04. So, if you are using this OS or are willing to set-up a VM, then this is by far the easiest method to get this project up and running.
+
+This project is quite a performance hog, so a VM inevitably limits your frame rate/resolution. Also, if using a VM make sure to install the [VirtualBox Extension Pack](https://www.virtualbox.org/wiki/Downloads) to get access to the host webcam from the guest VM. Then you should be able to enable the webcam from the `Devices` menu.
+
+Once you have your OS up and running, you'll want to create an environment for OpenCV to avoid package conflicts. I recommend [Conda](https://conda.io/docs/download.html) for this. Once Conda is installed, run the following commands in the terminal;
+
 ```
-conda create -n opencv -c conda-forge opencv numba cython
+$ conda create -n opencv -c menpo opencv3 numba cython
 ```
 
-If you are using Ubuntu 16.04, then the following will work;
+Activate the environment and then install **pynput** as that's not available via Conda;
 ```
-conda create -n opencv -c menpo opencv3 numba cython
+$ source activate opencv
+$ pip install pynput
 ```
 
-Then;
+That's your environment setup. Now you just need to get the source for this project;
 ```
-source activate opencv
-pip install pynput
+$ git clone https://github.com/ngcm/interactive-fluid-demo.git
 ```
-and;
+Change into the project folder and build the C coded simulation shared object;
+```
+$ cd interactive-fluid-demo
+$ make
+```
+Now the library is built, you can run the simulation any time after that by calling;
 ```
 python run.py
 ```
-or after calling make in the `csim` directory
+
+### MacOS (Currently Not Working)
+
+*Note that as of early March 2017, this method no longer works. It's not clear if that's because the project is using more of OpenCV or the available packages have changed.*
+
+If you are on a Mac, then the conda-forge channel has working packages (thanks [ryanpepper](https://github.com/ryanpepper) for discovering this). Again, Conda is recommended for creating an conflict free environment. Once that is installed, run the following;
 ```
-python run.py C
+$ conda create -n opencv -c conda-forge opencv numba cython
 ```
+Then continue with the installation instructions for Ubuntu.
 
+### Building OpenCV from source
 
-Activate the environment (`source activate opencv`) and try importing (`import cv2`, n.b 2 not 3).
+If working pre-built packages aren't available, then you'll need to build OpenCV from source.
 
-### Build from source
-
-To get *OpenCV* working, including video support (*ffmpeg*) I had to compile from source.
-
-Installation steps derived from [pyimagesearch blog](http://www.pyimagesearch.com/2016/10/24/ubuntu-16-04-how-to-install-opencv/). I've avoided using environments, which means less steps total, but a slightly more involved *cmake* step.
+*These installation steps derived from [pyimagesearch blog](http://www.pyimagesearch.com/2016/10/24/ubuntu-16-04-how-to-install-opencv/). I've avoided using environments, which means less steps total, but a slightly more involved `cmake` step*
 
 * Grab all the dependencies (if a particular version doesn't exist, try removing the version number, e.g. `libpng12-dev` > `libpng-dev`);
   ```
@@ -121,3 +143,29 @@ Installation steps derived from [pyimagesearch blog](http://www.pyimagesearch.co
   ```
   import cv2
   ```
+
+## Configuration
+
+It's possible to configure most of the simulations run-time options (e.g. flow-direction, sim resolution, etc.) before running the program by editing the `configuration.py` file. There you can also select between the C and Python/numpy versions of the sim (Note the Python version of the sim is much slower, it may however be useful for debugging purposes).
+
+## How to run
+
+If you followed the installation steps in this readme, then make sure you are in the Opencv Conda environment you created `source activate opencv`. Then run the program by calling `python run.py`.
+
+While the program is running, press the <kbd>f</kbd> key to switch between full-screen and windowed mode, and <kbd>d</kbd> key to switch between normal and debug modes, where you will also find a on-screen list of the other controls.
+
+### Foreground/Background Separation
+
+The program implements a couple of different methods for separating background (which defines the fluid volume) and foreground (which defines the solid boundaries). Switch between these using the <kbd>b</kbd> key.
+
+* *'white'*: this mode separates out the white parts of the image as background by selecting particular low *saturation* and high *value* values from the HSV colour space. You can alter the ranges using the <kbd>1</kbd> & <kbd>2</kbd> keys for the *value* and <kbd>3</kbd> & <kbd>4</kbd> keys for the *saturation*.
+
+* *'black'*: Similar to 'white', but this time separating out the black parts of the image, i.e. the pixels with low *value* values from the HSV colour space. You can alter the range using the <kbd>1</kbd> & <kbd>2</kbd> keys.
+
+* *'hue'*: This mode separates out pixels with particular *hues* and *values*. You can alter the ranges using the <kbd>1</kbd> & <kbd>2</kbd> keys for the *value* and <kbd>3</kbd> & <kbd>4</kbd> keys for the *hue*.
+
+* *'bg_subtract'*: This mode uses one of OpenCV's [*background subtraction*](https://en.wikipedia.org/wiki/Background_subtraction) method, `BackgroundSubtractorKNN`. It currently uses a fixed learning rate, but can be altered in the `util/Camera.py` file.
+
+### Optical Flow
+
+To measure foreground object velocities, this project utilises another of OpenCV's methods, `calcOpticalFlowFarneback`, an [*Optical Flow*](https://en.wikipedia.org/wiki/Optical_flow) algorithm. This is on by default, but it slows down the simulation while simultaneously requiring a high frame-rate to function well. It can be toggled with the <kbd>o</kbd> key or in advance in the `configuration.py` file.

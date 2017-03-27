@@ -87,8 +87,7 @@ class Camera:
 
     def reset(self):
         if not self._cap.isOpened():
-            random = np.array(np.power(np.random.rand(16, 8, 3), 3) * 255, dtype=np.uint8)
-            self._input_frame = cv2.resize(random, self._size)
+            random[:] = np.array(np.power(np.random.rand(16, 8, 3), 3) * 255, dtype=np.uint8)
 
     @property
     def active(self):
