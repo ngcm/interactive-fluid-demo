@@ -2,13 +2,13 @@
 #define ALTSIM_H
 
 #include <stdio.h>
-
+#include <omp.h>
 
 const int num_loops = 3;
 const int accuracy_mode = 1;
 const int pressure_solve_steps = 20;
 
-double advect_sample(const double const * v, int Ny, double s, double t) {
+inline double advect_sample(const double const * v, int Ny, double s, double t) {
     return (1 - s) * ((1 - t) * v[0] + t * v[1])
         + s * ((1 - t) * v[Ny] + t * v[Ny + 1]);
 }
@@ -32,7 +32,7 @@ void C_advect_velocity(
     // memset(advect_indexes, 0, 2 * Nx * Ny * sizeof(int));
     // memset(advect_lerps, 0, 2 * Nx * Ny * sizeof(double));
 
-    #pragma omp parallel for schedule(auto) private(y, idx, xa, ya, xi, yi, s, t, iidx)
+    #pragma omp for schedule(auto)
     for(x = 0; x < Nx; ++x) {
         for(y = 0; y < Ny; ++y) {
             idx = y + x * Ny;
@@ -76,7 +76,7 @@ void C_apply_advection(double * d, const double * const d0,
     int vyidx = Nx * Ny;
     int x, y, idx, iidx;
 
-    #pragma omp parallel for schedule(auto) private(y, idx, iidx)
+    #pragma omp for schedule(auto)
     for(x = 0; x < Nx; ++x) {
         for(y = 0; y < Ny; ++y) {
             idx = y + x * Ny;
@@ -109,7 +109,7 @@ void C_pressure_solve(
     double * temp = 0;
 
     // shouldn't have any pressure inside solids
-    #pragma omp parallel for schedule(auto) private(y, idx)
+    #pragma omp for schedule(auto)
     for(x = 0; x < Nx * Ny; ++x) {
         pressure[x] *= bound[x] ? 0.9 : 1.0;
     }
@@ -122,19 +122,19 @@ void C_pressure_solve(
 
     // make sure this is a multiple of 2 steps
     for(k = 0; k < pressure_solve_steps; ++k) {
-        #pragma omp parallel for schedule(auto)
+        #pragma omp for schedule(auto)
         for(x = 0; x < Nx; ++x) {
             pressure_buffer[x * Ny] = 0;
             pressure_buffer[(x + 1) * Ny - 1] = 0;
         }
 
-        #pragma omp parallel for schedule(auto)
+        #pragma omp for schedule(auto)
         for(y = 0; y < Ny; ++y) {
             pressure_buffer[y] = 0;
             pressure_buffer[y + Ny * (Nx - 1)] = 0;
         }
 
-        #pragma omp parallel for schedule(auto) private(y, idx)
+        #pragma omp for schedule(auto)
         for(x = 1; x < Nx - 1; ++x) {
             for(y = 1; y < Ny - 1; ++y) {
                 idx = y + x * Ny;
@@ -147,9 +147,13 @@ void C_pressure_solve(
             }
         }
 
-        temp = pressure_buffer;
-        pressure_buffer = pressure;
-        pressure = temp;
+        {
+            temp = pressure_buffer;
+            pressure_buffer = pressure;
+            pressure = temp;
+        }
+
+        #pragma omp barrier
     }
 }
 
@@ -165,7 +169,7 @@ void C_divergence(
     int x, y, idx;
     int vyidx = Nx * Ny;
 
-    #pragma omp parallel for schedule(auto) private(y, idx)
+    #pragma omp for schedule(auto)
     for(x = 1; x < Nx - 1; ++x) {
         for(y = 1; y < Ny - 1; ++y) {
             idx = y + x * Ny;
@@ -190,7 +194,7 @@ void C_sub_gradient(
     int x, y, idx;
     int vyidx = Nx * Ny;
 
-    #pragma omp parallel for schedule(auto) private(y, idx)
+    #pragma omp for schedule(auto)
     for(x = 1; x < Nx - 1; ++x) {
         for(y = 1; y < Ny - 1; ++y) {
             idx = y + x * Ny;
@@ -223,7 +227,7 @@ void C_enforce_slip(
     }
     */
 
-    #pragma omp parallel for schedule(auto) private(y, idx)
+    #pragma omp for schedule(auto)
     for(x = 1; x < Nx - 1; ++x) {
         for(y = 1; y < Ny - 1; ++y) {
             idx = y + x * Ny;
@@ -259,47 +263,54 @@ void C_step(
     const double dt0
         ) {
 
-    int i, j, x, idx;
+    #pragma omp parallel
+    {
+        int i, j, x, idx;
 
-    double dt = dt0 / num_loops;
-    for(i = 0; i < num_loops; ++i) {
-        if(accuracy_mode == 1) {
-            // BFECC
-            C_advect_velocity(vtmp2, v, bound, advect_indexes, advect_lerps, Nx, Ny, dx, dy, dt);
+        double dt = dt0 / num_loops;
 
-            C_advect_velocity(vtmp, vtmp2, bound, advect_indexes, advect_lerps, Nx, Ny, dx, dy, -dt);
+        for(i = 0; i < num_loops; ++i) {
+            #pragma omp barrier
 
-            #pragma omp parallel for schedule(auto)
-            for(x = 0; x < Nx * Ny * 2; ++x) {
-                vtmp2[x] = 1.5 * v[x] - 0.5 * vtmp[x];
+            if(accuracy_mode == 1) {
+                // BFECC
+                C_advect_velocity(vtmp2, v, bound, advect_indexes, advect_lerps, Nx, Ny, dx, dy, dt);
+
+                C_advect_velocity(vtmp, vtmp2, bound, advect_indexes, advect_lerps, Nx, Ny, dx, dy, -dt);
+
+                #pragma omp for schedule(auto)
+                for(x = 0; x < Nx * Ny * 2; ++x) {
+                    vtmp2[x] = 1.5 * v[x] - 0.5 * vtmp[x];
+                }
+
+                // Corrected advection
+                C_advect_velocity(vtmp, vtmp2, bound, advect_indexes, advect_lerps, Nx, Ny, dx, dy, dt);
+            } else {
+                // Standard advection
+                C_advect_velocity(vtmp, v, bound, advect_indexes, advect_lerps, Nx, Ny, dx, dy, dt);
             }
 
-            // Corrected advection
-            C_advect_velocity(vtmp, vtmp2, bound, advect_indexes, advect_lerps, Nx, Ny, dx, dy, dt);
-        } else {
+            // remove divergence
+            C_divergence(div, vtmp, bound, Nx, Ny, dx, dy);
+            C_pressure_solve(p, vtmp2, div, bound, Nx, Ny, dx, dy);
+            C_sub_gradient(v, vtmp, p, bound, Nx, Ny, dx, dy);
 
-            // Standard advection
-            C_advect_velocity(vtmp, v, bound, advect_indexes, advect_lerps, Nx, Ny, dx, dy, dt);
-        }
+            // enforce slip at boundary
+            C_enforce_slip(v, bound, Nx, Ny);
 
-        // remove divergence
-        C_divergence(div, vtmp, bound, Nx, Ny, dx, dy);
-        C_pressure_solve(p, vtmp2, div, bound, Nx, Ny, dx, dy);
-        C_sub_gradient(v, vtmp, p, bound, Nx, Ny, dx, dy);
-
-        // enforce slip at boundary
-        C_enforce_slip(v, bound, Nx, Ny);
-
-        for(j = 0; j < num_density_arrays; ++j) {
-            idx = Nx * Ny * j;
-            #pragma omp parallel for schedule(auto)
-            for(x = 0; x < Nx * Ny; ++x) {
-                vtmp[x] = density_arrays[idx + x];
+            for(j = 0; j < num_density_arrays; ++j) {
+                idx = Nx * Ny * j;
+                #pragma omp for schedule(auto)
+                for(x = 0; x < Nx * Ny; ++x) {
+                    vtmp[x] = density_arrays[idx + x];
+                }
+                C_apply_advection(density_arrays + idx, vtmp, bound, advect_indexes,
+                    advect_lerps, Nx, Ny);
             }
-            C_apply_advection(density_arrays + idx, vtmp, bound, advect_indexes,
-                advect_lerps, Nx, Ny);
         }
     }
+
+
 }
 
 
