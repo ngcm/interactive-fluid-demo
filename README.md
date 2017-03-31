@@ -78,11 +78,18 @@ python run.py
 
 *Note that as of early March 2017, this method no longer works. It's not clear if that's because the project is using more of OpenCV or the available packages have changed.*
 
-If you are on a Mac, then the conda-forge channel has working packages (thanks [ryanpepper](https://github.com/ryanpepper) for discovering this). Again, Conda is recommended for creating an conflict free environment. Once that is installed, run the following;
+If you are on a Mac, then the conda-forge channel has working packages (thanks [ryanpepper](https://github.com/ryanpepper) for discovering this).
+
+You'll need GCC (real GCC, not the Clang alias you on Mac by default) for OpenMP support, and the easiest way to install that is via Homebrew, though it will take a while (approx. 1hr);
 ```
-$ conda create -n opencv -c conda-forge opencv numba cython
+$ /usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+$ brew install gcc --without-multilib
 ```
-Then continue with the installation instructions for Ubuntu.
+Again, Conda is recommended for creating an conflict-free environment. Once that is installed, run the following;
+```
+$ conda create -n opencv -c conda-forge opencv numba cython numpy
+```
+Then continue with the installation instructions for Ubuntu from the `source activate opencv` step.
 
 ### Building OpenCV from source
 
